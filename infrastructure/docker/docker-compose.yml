@@ -1,0 +1,285 @@
+name: gcloude
+
+x-backend-service: &backend-service
+  restart: unless-stopped
+  networks:
+    - platform
+  depends_on:
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+    kafka:
+      condition: service_healthy
+  environment:
+    LOG_LEVEL: INFO
+    KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    KAFKA_TOPIC_PREFIX: platform.local
+    POSTGRES_URL: postgresql://platform:platform@postgres:5432/platform
+    REDIS_URL: redis://redis:6379/0
+    RETRY_MAX_ATTEMPTS: 3
+    RETRY_BASE_DELAY_MS: 250
+
+services:
+  frontend:
+    build:
+      context: ../../frontend
+    restart: unless-stopped
+    networks:
+      - platform
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    networks:
+      - platform
+    depends_on:
+      - frontend
+      - gateway-service
+      - demo-crm-app
+      - demo-bot-app
+    ports:
+      - "80:80"
+    volumes:
+      - ../nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - nginx_confd:/etc/nginx/platform.d
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    networks:
+      - platform
+    environment:
+      POSTGRES_DB: platform
+      POSTGRES_PASSWORD: platform
+      POSTGRES_USER: platform
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U platform -d platform"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    networks:
+      - platform
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio:RELEASE.2025-02-28T09-55-16Z
+    restart: unless-stopped
+    networks:
+      - platform
+    environment:
+      MINIO_ROOT_PASSWORD: minioadmin
+      MINIO_ROOT_USER: minioadmin
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+
+  registry:
+    image: registry:2
+    restart: unless-stopped
+    networks:
+      - platform
+    ports:
+      - "5000:5000"
+    volumes:
+      - registry_data:/var/lib/registry
+
+  kafka:
+    image: apache/kafka:3.7.0
+    restart: unless-stopped
+    networks:
+      - platform
+    environment:
+      CLUSTER_ID: abcdefghijklmnopqrstuv
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+    ports:
+      - "9092:9092"
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list >/dev/null 2>&1 || exit 1"]
+      interval: 20s
+      timeout: 10s
+      retries: 10
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    restart: unless-stopped
+    networks:
+      - platform
+    depends_on:
+      kafka:
+        condition: service_healthy
+    environment:
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+      KAFKA_CLUSTERS_0_NAME: local
+    ports:
+      - "8080:8080"
+
+  gateway-service:
+    <<: *backend-service
+    build:
+      context: ../../backend/gateway-service
+    env_file:
+      - ../../backend/gateway-service/.env.example
+    environment:
+      LOG_LEVEL: INFO
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      POSTGRES_URL: postgresql://platform:platform@postgres:5432/platform
+      REDIS_URL: redis://redis:6379/0
+      DOCKER_NETWORK: gcloude_platform
+      NGINX_CONF_DIR: /etc/nginx/platform.d
+      APP_DOMAIN: apps.localhost
+      WORKSPACE_DIR: /workspace
+    ports:
+      - "8000:8000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - nginx_confd:/etc/nginx/platform.d
+      - workspace:/workspace
+
+  demo-crm-app:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    networks:
+      - platform
+    volumes:
+      - ../demo-apps/crm:/usr/share/nginx/html:ro
+
+  demo-bot-app:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    networks:
+      - platform
+    volumes:
+      - ../demo-apps/bot:/usr/share/nginx/html:ro
+
+  auth-service:
+    <<: *backend-service
+    build:
+      context: ../../backend/auth-service
+    env_file:
+      - ../../backend/auth-service/.env.example
+    ports:
+      - "8001:8000"
+
+  user-service:
+    <<: *backend-service
+    build:
+      context: ../../backend/user-service
+    env_file:
+      - ../../backend/user-service/.env.example
+    ports:
+      - "8002:8000"
+
+  project-service:
+    <<: *backend-service
+    build:
+      context: ../../backend/project-service
+    env_file:
+      - ../../backend/project-service/.env.example
+    ports:
+      - "8003:8000"
+
+  deploy-service:
+    <<: *backend-service
+    build:
+      context: ../../backend/deploy-service
+    env_file:
+      - ../../backend/deploy-service/.env.example
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      minio:
+        condition: service_started
+      registry:
+        condition: service_started
+    environment:
+      LOG_LEVEL: INFO
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      KAFKA_TOPIC_PREFIX: platform.local
+      POSTGRES_URL: postgresql://platform:platform@postgres:5432/platform
+      REDIS_URL: redis://redis:6379/0
+      RETRY_MAX_ATTEMPTS: 3
+      RETRY_BASE_DELAY_MS: 250
+      REGISTRY_ENDPOINT: http://registry:5000
+      STORAGE_PROVIDER: filesystem
+      STORAGE_ROOT: /platform/storage
+    ports:
+      - "8004:8000"
+    volumes:
+      - ../../runtime/storage:/platform/storage
+
+  domain-service:
+    <<: *backend-service
+    build:
+      context: ../../backend/domain-service
+    env_file:
+      - ../../backend/domain-service/.env.example
+    ports:
+      - "8005:8000"
+
+  billing-service:
+    <<: *backend-service
+    build:
+      context: ../../backend/billing-service
+    env_file:
+      - ../../backend/billing-service/.env.example
+    ports:
+      - "8006:8000"
+
+  observability-service:
+    <<: *backend-service
+    build:
+      context: ../../backend/observability-service
+    env_file:
+      - ../../backend/observability-service/.env.example
+    ports:
+      - "8007:8000"
+
+networks:
+  platform:
+    name: gcloude_platform
+
+volumes:
+  kafka_data:
+  minio_data:
+  nginx_confd:
+  postgres_data:
+  redis_data:
+  registry_data:
+  workspace:

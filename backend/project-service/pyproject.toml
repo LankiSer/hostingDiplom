@@ -1,0 +1,9 @@
+[project]
+name = "project-service"
+version = "0.1.0"
+description = "Project and microservice catalog service"
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi>=0.116.0",
+  "uvicorn[standard]>=0.35.0",
+]

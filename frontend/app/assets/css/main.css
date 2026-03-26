@@ -1,0 +1,41 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    color-scheme: dark;
+    font-family: Inter, system-ui, Arial, sans-serif;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    @apply min-h-screen bg-slate-950 text-slate-100;
+  }
+
+  a {
+    @apply text-inherit no-underline;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
+
+  select option {
+    background: #0f172a;
+  }
+}
+
+@layer components {
+  .app-page-grid {
+    @apply grid gap-5;
+  }
+
+  .app-page-columns {
+    @apply grid gap-4 lg:grid-cols-2;
+  }
+}

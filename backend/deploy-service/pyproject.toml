@@ -1,0 +1,9 @@
+[project]
+name = "deploy-service"
+version = "0.1.0"
+description = "Build and deploy orchestration service"
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi>=0.116.0",
+  "uvicorn[standard]>=0.35.0",
+]

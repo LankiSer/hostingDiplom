@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sample-user-service
+  namespace: platform
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sample-user-service
+  template:
+    metadata:
+      labels:
+        app: sample-user-service
+    spec:
+      containers:
+        - name: sample-user-service
+          image: registry.gcloude.ru/customers/acme/sample-user-service:v1
+          ports:
+            - containerPort: 3000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sample-user-service
+  namespace: platform
+spec:
+  selector:
+    app: sample-user-service
+  ports:
+    - name: http
+      port: 80
+      targetPort: 3000
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: sample-user-service
+  namespace: platform
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-dns
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - api.apps.gcloude.ru
+      secretName: sample-user-service-tls
+  rules:
+    - host: api.apps.gcloude.ru
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: sample-user-service
+                port:
+                  number: 80
