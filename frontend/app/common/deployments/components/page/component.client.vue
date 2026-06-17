@@ -22,26 +22,26 @@ function formatDate(iso: string) {
 <template>
   <div class="grid gap-4">
     <div>
-      <h2 class="text-base font-semibold text-slate-100">История деплоев</h2>
-      <p class="text-sm text-slate-400">Все сборки и публикации приложений</p>
+      <h2 class="text-xl font-semibold text-slate-900">История деплоев</h2>
+      <p class="text-sm text-slate-500">Все сборки и публикации приложений</p>
     </div>
 
-    <div v-if="!deployments?.length" class="rounded-xl border border-white/5 bg-slate-900/40 px-5 py-8 text-center text-sm text-slate-400">
+    <div v-if="!deployments?.length" class="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-5 py-8 text-center text-sm text-slate-500">
       Нет деплоев. Задеплойте первое приложение через раздел Проекты.
     </div>
 
     <AppCard v-for="d in deployments" :key="d.id">
       <div class="flex items-center justify-between gap-4">
         <div class="min-w-0">
-          <p class="truncate text-sm font-medium text-slate-100">{{ d.git_url || d.id }}</p>
-          <p class="text-xs text-slate-400">{{ formatDate(d.created_at) }}</p>
+          <p class="truncate text-sm font-medium text-slate-900">{{ d.git_url || d.id }}</p>
+          <p class="text-xs text-slate-500">{{ formatDate(d.created_at) }}</p>
         </div>
         <div class="flex shrink-0 items-center gap-2">
           <AppBadge :label="d.status" :tone="statusTone(d.status)" />
-          <button class="text-xs text-sky-400 hover:underline" @click="router.push(`/applications/${d.app_id}`)">Приложение</button>
+          <button class="text-xs text-sky-600 hover:underline" @click="router.push(`/applications/${d.app_id}`)">Приложение</button>
         </div>
       </div>
-      <pre v-if="d.logs" class="mt-2 max-h-24 overflow-auto rounded-lg bg-slate-950 p-2 text-xs text-slate-400">{{ d.logs.slice(-400) }}</pre>
+      <pre v-if="d.logs" class="mt-2 max-h-24 overflow-auto rounded-lg border border-slate-200 bg-slate-50 p-2 text-xs text-slate-600">{{ d.logs.slice(-400) }}</pre>
     </AppCard>
   </div>
 </template>

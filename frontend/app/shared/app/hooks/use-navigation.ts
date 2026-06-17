@@ -4,7 +4,7 @@ import { NAV_GROUP_LABELS, type AppNavigationGroup } from '../entities/navigatio
 
 export function useNavigation() {
   const grouped = computed(() => {
-    const order: AppNavigationGroup[] = ['hosting', 'deploys', 'finance', 'team'];
+    const order: AppNavigationGroup[] = ['platform', 'release', 'billing', 'account'];
     return order.map((group) => ({
       group,
       label: NAV_GROUP_LABELS[group],

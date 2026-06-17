@@ -6,7 +6,7 @@ import AppButton from '~/shared/app/components/ui/button/component.vue';
 import AppCard from '~/shared/app/components/ui/card/component.vue';
 import { usePlatformApi } from '~/shared/app/hooks/use-platform-api';
 
-interface AppDetail { id: string; name: string; project_name: string; project_id: string; runtime: string; status: string; url: string; git_url: string; slug: string; container_name: string }
+interface AppDetail { id: string; name: string; project_name: string; project_id: string; runtime: string; status: string; url: string; hostname?: string; git_url: string; slug: string; container_name: string }
 
 const props = defineProps<{ appId: string }>();
 const { get, post, del } = usePlatformApi();
@@ -75,13 +75,13 @@ onUnmounted(() => { if (pollTimer) clearInterval(pollTimer); });
   <div class="grid gap-4">
     <div class="flex flex-wrap items-start justify-between gap-3">
       <div>
-        <button class="mb-1 text-xs text-slate-500 hover:text-sky-400" @click="router.push(`/projects/${app?.project_id}`)">← {{ app?.project_name }}</button>
-        <h2 class="text-base font-semibold text-slate-100">{{ app?.name }}</h2>
-        <p class="text-sm text-slate-400">{{ app?.git_url || app?.slug }}</p>
+        <button class="mb-1 text-xs text-slate-500 hover:text-sky-600" @click="router.push(`/projects/${app?.project_id}`)">← {{ app?.project_name }}</button>
+        <h2 class="text-xl font-semibold text-slate-900">{{ app?.name }}</h2>
+        <p class="text-sm text-slate-500">{{ app?.git_url || app?.slug }}</p>
       </div>
       <div class="flex items-center gap-2">
         <AppBadge v-if="app?.status" :label="app.status" :tone="statusTone(app.status)" />
-        <a v-if="app?.url" :href="app.url" target="_blank" class="text-xs text-sky-400 hover:underline">{{ app.url }} ↗</a>
+        <a v-if="app?.url" :href="app.url" target="_blank" class="text-xs text-sky-600 hover:underline">{{ app.url }} ↗</a>
       </div>
     </div>
 
@@ -98,18 +98,18 @@ onUnmounted(() => { if (pollTimer) clearInterval(pollTimer); });
     <AppCard>
       <div class="grid gap-2">
         <div class="flex items-center justify-between">
-          <span class="text-xs font-medium text-slate-400">Логи контейнера</span>
-          <span v-if="loadingLogs" class="text-xs text-slate-500">загрузка...</span>
+          <span class="text-xs font-medium text-slate-500">Логи контейнера</span>
+          <span v-if="loadingLogs" class="text-xs text-slate-400">загрузка...</span>
         </div>
-        <pre class="h-72 overflow-auto rounded-lg bg-slate-950 p-3 text-xs leading-5 text-slate-300 scrollbar-thin">{{ logs || 'Нет логов' }}</pre>
+        <pre class="h-72 overflow-auto rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs leading-5 text-slate-700 scrollbar-thin">{{ logs || 'Нет логов' }}</pre>
       </div>
     </AppCard>
 
     <AppCard>
       <div class="grid gap-2 text-sm">
-        <div class="flex justify-between"><span class="text-slate-400">Runtime</span><span class="text-slate-200">{{ app?.runtime }}</span></div>
-        <div class="flex justify-between"><span class="text-slate-400">Контейнер</span><span class="font-mono text-xs text-slate-300">{{ app?.container_name || '—' }}</span></div>
-        <div class="flex justify-between"><span class="text-slate-400">Домен</span><span class="text-slate-300">{{ app?.slug }}.apps.localhost</span></div>
+        <div class="flex justify-between"><span class="text-slate-500">Runtime</span><span class="text-slate-800">{{ app?.runtime }}</span></div>
+        <div class="flex justify-between"><span class="text-slate-500">Контейнер</span><span class="font-mono text-xs text-slate-700">{{ app?.container_name || '—' }}</span></div>
+        <div class="flex justify-between"><span class="text-slate-500">Домен</span><span class="font-mono text-xs text-sky-700">{{ app?.hostname || app?.url?.replace(/^https?:\/\//, '') || '—' }}</span></div>
       </div>
     </AppCard>
   </div>

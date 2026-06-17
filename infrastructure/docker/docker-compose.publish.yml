@@ -1,0 +1,14 @@
+# Standalone production: platform nginx owns host :80 and :443.
+# Usage (with setup.sh or):
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml \
+#     -f docker-compose.publish.yml --env-file .env.production up -d
+
+services:
+  nginx:
+    ports:
+      - target: 80
+        published: 80
+        protocol: tcp
+      - target: 443
+        published: 443
+        protocol: tcp

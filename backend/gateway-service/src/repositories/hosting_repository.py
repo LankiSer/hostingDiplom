@@ -1,3 +1,4 @@
+import json
 import re
 
 from src.core.database import get_connection, serialize_row
@@ -80,17 +81,88 @@ class HostingRepository:
         name: str,
         git_url: str = "",
         runtime: str = "node",
+        app_type: str = "custom",
+        root_path: str = "",
+        branch: str = "main",
     ) -> dict:
         slug = _slugify(name)
         with get_connection() as conn:
             with conn.cursor() as cur:
                 cur.execute(
-                    """INSERT INTO applications (project_id, name, slug, git_url, runtime)
-                       VALUES (%s, %s, %s, %s, %s) RETURNING *""",
-                    (project_id, name, slug, git_url, runtime),
+                    """INSERT INTO applications
+                       (project_id, name, slug, git_url, runtime, app_type, root_path, branch)
+                       VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING *""",
+                    (project_id, name, slug, git_url, runtime, app_type, root_path, branch),
                 )
                 conn.commit()
                 return serialize_row(cur.fetchone())
+
+    def get_app_by_type(self, project_id: str, app_type: str) -> dict | None:
+        with get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "SELECT * FROM applications WHERE project_id = %s AND app_type = %s LIMIT 1",
+                    (project_id, app_type),
+                )
+                return serialize_row(cur.fetchone())
+
+    def update_app_config(
+        self,
+        app_id: str,
+        *,
+        git_url: str | None = None,
+        runtime: str | None = None,
+        root_path: str | None = None,
+        branch: str | None = None,
+        name: str | None = None,
+    ) -> dict | None:
+        fields: list[str] = []
+        values: list[object] = []
+        if git_url is not None:
+            fields.append("git_url = %s")
+            values.append(git_url)
+        if runtime is not None:
+            fields.append("runtime = %s")
+            values.append(runtime)
+        if root_path is not None:
+            fields.append("root_path = %s")
+            values.append(root_path)
+        if branch is not None:
+            fields.append("branch = %s")
+            values.append(branch)
+        if name is not None:
+            fields.append("name = %s")
+            values.append(name)
+        if not fields:
+            return self.get_app(app_id)
+        values.append(app_id)
+        with get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    f"UPDATE applications SET {', '.join(fields)} WHERE id = %s RETURNING *",
+                    values,
+                )
+                conn.commit()
+                return serialize_row(cur.fetchone())
+
+    def update_project_deploy_config(
+        self,
+        project_id: str,
+        git_url: str,
+        git_branch: str,
+        deploy_config: dict,
+    ) -> dict | None:
+        with get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """UPDATE projects
+                       SET git_url = %s, git_branch = %s, deploy_config = %s::jsonb
+                       WHERE id = %s RETURNING *""",
+                    (git_url, git_branch, json.dumps(deploy_config), project_id),
+                )
+                conn.commit()
+                row = cur.fetchone()
+                return serialize_row(row)
 
     def get_app(self, app_id: str) -> dict | None:
         with get_connection() as conn:

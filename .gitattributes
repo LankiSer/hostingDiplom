@@ -1,0 +1,5 @@
+# Unix line endings for scripts and deploy configs (важно при работе на Windows)
+*.sh text eol=lf
+*.bash text eol=lf
+.env.production.example text eol=lf
+setup.sh text eol=lf

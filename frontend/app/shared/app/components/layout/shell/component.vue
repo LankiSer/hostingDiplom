@@ -7,12 +7,14 @@ defineSlots<AppShellSlots>();
 </script>
 
 <template>
-  <div class="flex h-screen overflow-hidden">
+  <div class="flex h-screen overflow-hidden bg-[radial-gradient(circle_at_top_left,rgba(14,165,233,0.06),transparent_40%),radial-gradient(circle_at_bottom_right,rgba(245,158,11,0.05),transparent_35%),#f8fafc]">
     <AppSidebar />
     <main class="flex flex-1 flex-col overflow-y-auto">
-      <div class="flex flex-1 flex-col gap-5 px-6 py-5">
+      <div class="flex flex-1 flex-col gap-6 px-6 py-6 lg:px-8">
         <AppHeader />
-        <slot />
+        <div class="pb-6">
+          <slot />
+        </div>
       </div>
     </main>
   </div>

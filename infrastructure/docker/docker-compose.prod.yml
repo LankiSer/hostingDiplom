@@ -1,0 +1,98 @@
+# Production overlay for kostricyn.ru
+# Usage: docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.production up -d
+#
+# Internal services (postgres, redis, backends) are NOT published to the host —
+# only platform nginx is exposed (configurable via PLATFORM_HTTP_PUBLISH / PLATFORM_HTTPS_PUBLISH).
+
+services:
+  frontend:
+    environment:
+      NUXT_PUBLIC_API_BASE_URL: ''
+
+  nginx:
+    volumes:
+      - ../nginx/production/${NGINX_CONFIG:-nginx.https.conf}:/etc/nginx/nginx.conf:ro
+      - ../nginx/production/snippets:/etc/nginx/snippets:ro
+      - ${CERTBOT_WEBROOT_HOST:-../../runtime/certbot-webroot}:/var/www/certbot:ro
+      - ${LETSENCRYPT_HOST:-../../runtime/letsencrypt}:/etc/letsencrypt:ro
+      - nginx_confd:/etc/nginx/platform.d
+
+  postgres:
+    ports: !reset []
+
+  redis:
+    ports: !reset []
+
+  minio:
+    ports: !reset []
+
+  registry:
+    ports: !reset []
+
+  kafka:
+    ports: !reset []
+
+  kafka-ui:
+    ports: !reset []
+
+  gateway-service:
+    ports: !reset []
+    environment:
+      BASE_DOMAIN: ${BASE_DOMAIN}
+      APP_DOMAIN: apps.${BASE_DOMAIN}
+      DASHBOARD_HOST: ${DASHBOARD_HOST:-app.${BASE_DOMAIN}}
+      API_HOST: ${API_HOST:-api.${BASE_DOMAIN}}
+      APPS_DOMAIN: ${APPS_DOMAIN:-apps.${BASE_DOMAIN}}
+      NGINX_SSL_ENABLED: ${NGINX_SSL_ENABLED:-true}
+      SSL_AUTO_ISSUE: ${SSL_AUTO_ISSUE:-true}
+      CERTBOT_EMAIL: ${CERTBOT_EMAIL:-admin@${BASE_DOMAIN}}
+      CERTBOT_WEBROOT: /var/www/certbot
+      LETSENCRYPT_DIR: /etc/letsencrypt
+      LETSENCRYPT_LIVE_DIR: /etc/letsencrypt/live
+      CERTBOT_WEBROOT_HOST: ${CERTBOT_WEBROOT_HOST:-}
+      LETSENCRYPT_HOST: ${LETSENCRYPT_HOST:-}
+      CERTBOT_WEBROOT_VOLUME: ${COMPOSE_PROJECT_NAME}_certbot_webroot
+      LETSENCRYPT_VOLUME: ${COMPOSE_PROJECT_NAME}_letsencrypt
+      AUTH_SERVICE_URL: http://auth-service:8000
+      PLATFORM_API_UPSTREAM: gateway-service:8000
+      ALLOWED_ORIGINS: https://app.${BASE_DOMAIN},http://app.${BASE_DOMAIN},https://api.${BASE_DOMAIN}
+    depends_on:
+      auth-service:
+        condition: service_started
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - nginx_confd:/etc/nginx/platform.d
+      - ${CERTBOT_WEBROOT_HOST:-../../runtime/certbot-webroot}:/var/www/certbot
+      - ${LETSENCRYPT_HOST:-../../runtime/letsencrypt}:/etc/letsencrypt
+      - workspace:/workspace
+
+  auth-service:
+    ports: !reset []
+
+  user-service:
+    ports: !reset []
+
+  project-service:
+    ports: !reset []
+
+  deploy-service:
+    ports: !reset []
+
+  domain-service:
+    ports: !reset []
+
+  billing-service:
+    ports: !reset []
+
+  observability-service:
+    ports: !reset []
+
+  certbot:
+    image: certbot/certbot:latest
+    profiles:
+      - certbot
+    networks:
+      - platform
+    volumes:
+      - ${CERTBOT_WEBROOT_HOST:-../../runtime/certbot-webroot}:/var/www/certbot
+      - ${LETSENCRYPT_HOST:-../../runtime/letsencrypt}:/etc/letsencrypt

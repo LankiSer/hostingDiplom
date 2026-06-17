@@ -15,17 +15,26 @@ service = GatewayService()
 
 @router.post("/login", response_model=PlatformSessionResponse)
 def login(payload: PlatformLoginRequest) -> PlatformSessionResponse:
-    return PlatformSessionResponse(**service.login(payload.email, payload.organization))
+    try:
+        session = service.login(
+            email=payload.email,
+            accept_policy=payload.accept_policy,
+            accept_personal_data=payload.accept_personal_data,
+            password=payload.password,
+        )
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+    return PlatformSessionResponse(**session)
 
 
 @router.post("/register", response_model=PlatformSessionResponse)
 def register(payload: PlatformRegisterRequest) -> PlatformSessionResponse:
     try:
         session = service.register(
-            company_name=payload.company_name,
-            contact_name=payload.contact_name,
+            display_name=payload.display_name,
             email=payload.email,
-            inn=payload.inn,
+            password=payload.password,
+            workspace_name=payload.workspace_name,
             accept_policy=payload.accept_policy,
             accept_personal_data=payload.accept_personal_data,
         )
@@ -81,7 +90,12 @@ def activity() -> dict[str, object]:
 
 @router.get("/team")
 def team() -> dict[str, object]:
-    return service.get_team()
+    return service.get_team_overview()
+
+
+@router.get("/team/overview")
+def team_overview() -> dict[str, object]:
+    return service.get_team_overview()
 
 
 @router.get("/access")

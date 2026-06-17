@@ -28,6 +28,20 @@ Monorepo for a microservice hosting platform with:
 Billing invoices can be exported to JSON and imported into 1C without a web server.
 See `docs/onec-file-import.md` for the external processing setup.
 
+## Production (VPS)
+
+From the repo root on the server (e.g. `/opt/hosting`):
+
+```bash
+# После копирования с Windows — запускайте через bash:
+bash setup.sh
+
+# Или если уже Unix-формат:
+chmod +x setup.sh && ./setup.sh
+```
+
+See `docs/deploy-kostricyn.ru.md` for DNS, SSL, and Git deploy details.
+
 ## Local Demo
 
 Use `nginx` as the single local entry point and map `dashboard.gcloude.local`,

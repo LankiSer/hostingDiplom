@@ -9,7 +9,7 @@ const props = withDefaults(defineProps<AppCardProps>(), {
 
 const cardClassName = computed(() =>
   classNames(
-    'overflow-hidden rounded-xl border border-white/8 bg-slate-900/60',
+    'overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm',
     props.padded && 'p-4'
   )
 );

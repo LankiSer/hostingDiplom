@@ -9,12 +9,12 @@ const props = withDefaults(defineProps<AppBadgeProps>(), {
 
 const badgeClassName = computed(() =>
   classNames(
-    'inline-flex rounded-full border px-3 py-1 text-xs font-medium',
-    props.tone === 'default' && 'border-sky-400/20 bg-sky-400/10 text-sky-200',
-    props.tone === 'success' && 'border-emerald-400/20 bg-emerald-400/10 text-emerald-200',
-    props.tone === 'warning' && 'border-amber-400/20 bg-amber-400/10 text-amber-200',
-    props.tone === 'danger' && 'border-rose-400/20 bg-rose-400/10 text-rose-200',
-    props.tone === 'muted' && 'border-slate-700/40 bg-slate-800/40 text-slate-400'
+    'inline-flex rounded-full border px-2.5 py-0.5 text-xs font-medium',
+    props.tone === 'default' && 'border-sky-200 bg-sky-50 text-sky-700',
+    props.tone === 'success' && 'border-emerald-200 bg-emerald-50 text-emerald-700',
+    props.tone === 'warning' && 'border-amber-200 bg-amber-50 text-amber-700',
+    props.tone === 'danger' && 'border-rose-200 bg-rose-50 text-rose-700',
+    props.tone === 'muted' && 'border-slate-200 bg-slate-100 text-slate-600'
   )
 );
 </script>

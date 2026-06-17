@@ -9,22 +9,26 @@ import { usePlatformApi } from '~/shared/app/hooks/use-platform-api';
 
 const emit = defineEmits<{ success: [session: SessionEntity] }>();
 const { post } = usePlatformApi();
-const email = ref('owner@gcloude.ru');
-const organization = ref('ООО Гклауд');
-const acceptPolicy = ref(false);
-const acceptPersonalData = ref(false);
+const email = ref('');
+const password = ref('');
+const acceptTerms = ref(false);
 const errorMessage = ref('');
 const isSubmitting = ref(false);
 
 async function handleSubmit() {
-  if (!acceptPolicy.value || !acceptPersonalData.value) return;
+  if (!acceptTerms.value) return;
   errorMessage.value = '';
   isSubmitting.value = true;
   try {
-    const session = await post<SessionEntity>('/api/v1/platform/login', { email: email.value, organization: organization.value });
+    const session = await post<SessionEntity>('/api/v1/platform/login', {
+      email: email.value,
+      password: password.value,
+      accept_policy: acceptTerms.value,
+      accept_personal_data: acceptTerms.value,
+    });
     emit('success', session);
   } catch {
-    errorMessage.value = 'Не удалось войти. Открой `localhost` или проверь локальный `nginx`.';
+    errorMessage.value = 'Не удалось войти. Проверь email и пароль.';
   } finally {
     isSubmitting.value = false;
   }
@@ -33,11 +37,21 @@ async function handleSubmit() {
 
 <template>
   <form class="grid gap-4" @submit.prevent="handleSubmit">
-    <AppInput v-model="email" :label="AUTH_LOGIN_COPY.emailLabel" :placeholder="AUTH_LOGIN_COPY.emailPlaceholder" />
-    <AppInput v-model="organization" :label="AUTH_LOGIN_COPY.organizationLabel" :placeholder="AUTH_LOGIN_COPY.organizationPlaceholder" />
-    <AppCheckbox v-model="acceptPolicy" :label="AUTH_LOGIN_COPY.consentPolicy" />
-    <AppCheckbox v-model="acceptPersonalData" :label="AUTH_LOGIN_COPY.consentPersonalData" />
-    <p v-if="errorMessage" class="text-sm text-rose-300">{{ errorMessage }}</p>
-    <AppButton :disabled="isSubmitting || !acceptPolicy || !acceptPersonalData" :label="isSubmitting ? AUTH_LOGIN_COPY.submitting : AUTH_LOGIN_COPY.submit" type="submit" />
+    <AppInput v-model="email" :label="AUTH_LOGIN_COPY.emailLabel" :placeholder="AUTH_LOGIN_COPY.emailPlaceholder" type="email" />
+    <AppInput v-model="password" :label="AUTH_LOGIN_COPY.passwordLabel" :placeholder="AUTH_LOGIN_COPY.passwordPlaceholder" type="password" />
+
+    <AppCheckbox v-model="acceptTerms">
+      Я принимаю
+      <NuxtLink class="text-sky-600 hover:underline" to="/legal/privacy">пользовательское соглашение</NuxtLink>
+      и
+      <NuxtLink class="text-sky-600 hover:underline" to="/legal/personal-data">политику обработки данных</NuxtLink>
+    </AppCheckbox>
+
+    <p v-if="errorMessage" class="text-sm text-rose-600">{{ errorMessage }}</p>
+    <AppButton
+      :disabled="isSubmitting || !acceptTerms || !email || !password"
+      :label="isSubmitting ? AUTH_LOGIN_COPY.submitting : AUTH_LOGIN_COPY.submit"
+      type="submit"
+    />
   </form>
 </template>

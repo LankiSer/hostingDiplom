@@ -18,24 +18,24 @@ function statusTone(s: string) {
 <template>
   <div class="grid gap-4">
     <div>
-      <h2 class="text-base font-semibold text-slate-100">Приложения</h2>
-      <p class="text-sm text-slate-400">Все задеплоенные сервисы на платформе</p>
+      <h2 class="text-xl font-semibold text-slate-900">Приложения</h2>
+      <p class="text-sm text-slate-500">Все задеплоенные сервисы на платформе</p>
     </div>
 
-    <div v-if="!apps?.length" class="rounded-xl border border-white/5 bg-slate-900/40 px-5 py-8 text-center text-sm text-slate-400">
+    <div v-if="!apps?.length" class="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-5 py-8 text-center text-sm text-slate-500">
       Нет приложений. Создайте проект и задеплойте первое.
     </div>
 
-    <AppCard v-for="a in apps" :key="a.id" class="cursor-pointer hover:border-sky-400/20" @click="router.push(`/applications/${a.id}`)">
+    <AppCard v-for="a in apps" :key="a.id" class="cursor-pointer hover:border-sky-200" @click="router.push(`/applications/${a.id}`)">
       <div class="flex items-center justify-between gap-4">
         <div class="min-w-0">
-          <p class="truncate font-medium text-slate-100">{{ a.name }}</p>
-          <p class="truncate text-xs text-slate-400">{{ a.project_name }} · {{ a.slug }}</p>
+          <p class="truncate font-medium text-slate-900">{{ a.name }}</p>
+          <p class="truncate text-xs text-slate-500">{{ a.project_name }} · {{ a.slug }}</p>
         </div>
         <div class="flex shrink-0 items-center gap-2">
           <AppBadge :label="a.runtime" tone="muted" />
           <AppBadge :label="a.status" :tone="statusTone(a.status)" />
-          <a v-if="a.url" :href="a.url" target="_blank" class="text-xs text-sky-400 hover:underline" @click.stop>↗</a>
+          <a v-if="a.url" :href="a.url" target="_blank" class="text-xs text-sky-600 hover:underline" @click.stop>↗</a>
         </div>
       </div>
     </AppCard>

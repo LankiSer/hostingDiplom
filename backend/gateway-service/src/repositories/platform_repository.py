@@ -1,19 +1,10 @@
-PLATFORM_SETTINGS = {
-    "api_host": "api.localhost",
-    "company_name": "ООО Гклауд",
-    "contact_email": "owner@gcloude.ru",
-    "contact_name": "Александр Смирнов",
-    "dashboard_host": "dashboard.localhost",
-    "default_app_domain": "apps.localhost",
-    "support_email": "support@localhost",
-    "workspace_name": "gcloude control",
-}
+from src.core.platform_settings import PLATFORM_SETTINGS
 
 
 class PlatformRepository:
-    def login(self, email: str, organization: str) -> dict[str, str]:
+    def login(self, email: str, password: str = "") -> dict[str, str]:
         return {
-            "companyName": organization or PLATFORM_SETTINGS["company_name"],
+            "companyName": PLATFORM_SETTINGS["workspace_name"],
             "displayName": PLATFORM_SETTINGS["contact_name"],
             "email": email,
             "role": "owner",
@@ -22,20 +13,21 @@ class PlatformRepository:
 
     def register(
         self,
-        company_name: str,
-        contact_name: str,
+        display_name: str,
         email: str,
-        inn: str,
+        password: str = "",
+        workspace_name: str = "",
     ) -> dict[str, str]:
-        PLATFORM_SETTINGS["company_name"] = company_name
-        PLATFORM_SETTINGS["contact_name"] = contact_name
+        workspace = workspace_name.strip() or f"{display_name.split()[0]} workspace"
+        PLATFORM_SETTINGS["workspace_name"] = workspace
+        PLATFORM_SETTINGS["contact_name"] = display_name
         PLATFORM_SETTINGS["contact_email"] = email
         return {
-            "companyName": company_name,
-            "displayName": contact_name,
+            "companyName": workspace,
+            "displayName": display_name,
             "email": email,
             "role": "owner",
-            "token": f"local-platform-token-{inn}",
+            "token": "local-platform-token",
         }
 
     def get_settings_form(self) -> dict[str, str]:
@@ -150,16 +142,88 @@ class PlatformRepository:
             ],
         }
 
+    def team_overview(self) -> dict[str, object]:
+        return {
+            "members": [
+                {
+                    "id": "m-1",
+                    "name": PLATFORM_SETTINGS["contact_name"],
+                    "email": PLATFORM_SETTINGS["contact_email"],
+                    "role": "owner",
+                    "role_label": "Владелец",
+                    "projects": 6,
+                    "status": "active",
+                    "initials": self._initials(PLATFORM_SETTINGS["contact_name"]),
+                },
+                {
+                    "id": "m-2",
+                    "name": "Марина Ковалева",
+                    "email": "finance@gcloude.ru",
+                    "role": "finance",
+                    "role_label": "Финансы",
+                    "projects": 2,
+                    "status": "active",
+                    "initials": "МК",
+                },
+                {
+                    "id": "m-3",
+                    "name": "Илья Воронцов",
+                    "email": "ops@gcloude.ru",
+                    "role": "ops",
+                    "role_label": "DevOps",
+                    "projects": 4,
+                    "status": "invited",
+                    "initials": "ИВ",
+                },
+            ],
+            "roles": [
+                {
+                    "id": "owner",
+                    "name": "Владелец",
+                    "description": "Полный доступ: проекты, деплои, биллинг и настройки.",
+                    "members": 1,
+                    "permissions": ["projects", "deploys", "billing", "settings", "team"],
+                },
+                {
+                    "id": "ops",
+                    "name": "DevOps",
+                    "description": "Деплои, домены, логи и управление приложениями.",
+                    "members": 1,
+                    "permissions": ["projects", "deploys", "logs"],
+                },
+                {
+                    "id": "finance",
+                    "name": "Финансы",
+                    "description": "Счета, документы и выгрузка для 1С.",
+                    "members": 1,
+                    "permissions": ["billing", "documents"],
+                },
+            ],
+        }
+
     def team(self) -> dict[str, object]:
+        overview = self.team_overview()
+        members = overview["members"]
         return {
             "title": "Команда",
             "description": "Участники кабинета, роли и зоны ответственности по проектам.",
             "cards": [
-                self._card("Александр Смирнов", "Владелец кабинета и ответственный за клиентскую инфраструктуру.", "Owner", "success", [self._fact("Проекты", "6"), self._fact("Доступ", "полный")]),
-                self._card("Марина Ковалева", "Финансы и документы по юрлицам.", "Finance", "default", [self._fact("Проекты", "2"), self._fact("Доступ", "billing")]),
-                self._card("Илья Воронцов", "Релизы, домены и наблюдаемость production-сервисов.", "Ops", "default", [self._fact("Проекты", "4"), self._fact("Доступ", "deploys + logs")]),
+                self._card(
+                    m["name"],
+                    f'{m["role_label"]} · {m["email"]}',
+                    "Активен" if m["status"] == "active" else "Приглашён",
+                    "success" if m["status"] == "active" else "warning",
+                    [self._fact("Проекты", str(m["projects"])), self._fact("Роль", m["role_label"])],
+                )
+                for m in members
             ],
         }
+
+    def _initials(self, name: str) -> str:
+        parts = name.split()
+        if len(parts) >= 2:
+            return (parts[0][0] + parts[1][0]).upper()
+        return name[:2].upper() if name else "??"
 
     def access(self) -> dict[str, object]:
         return {

@@ -34,18 +34,18 @@ function isExternal(to: string) {
         <div class="grid gap-3">
           <AppBadge v-if="card.badge" :label="card.badge.label" :tone="card.badge.tone" />
           <div class="grid gap-2">
-            <h3 class="text-lg font-semibold text-white">{{ card.title }}</h3>
-            <p class="text-sm leading-5 text-slate-400">{{ card.description }}</p>
+            <h3 class="text-lg font-semibold text-slate-900">{{ card.title }}</h3>
+            <p class="text-sm leading-5 text-slate-500">{{ card.description }}</p>
           </div>
           <div v-if="card.facts?.length" class="grid gap-2">
-            <div v-for="fact in card.facts" :key="`${card.title}-${fact.label}`" class="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm">
-              <span class="text-slate-400">{{ fact.label }}</span>
-              <strong class="text-white">{{ fact.value }}</strong>
+            <div v-for="fact in card.facts" :key="`${card.title}-${fact.label}`" class="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-3 py-2.5 text-sm">
+              <span class="text-slate-500">{{ fact.label }}</span>
+              <strong class="text-slate-900">{{ fact.value }}</strong>
             </div>
           </div>
           <div v-if="card.actions?.length" class="flex flex-wrap gap-3">
-            <a v-for="action in card.actions.filter((item) => isExternal(item.to))" :key="action.to" :href="action.to" target="_blank" rel="noreferrer" :class="classNames('inline-flex items-center justify-center rounded-2xl px-4 py-3 text-sm font-semibold transition', action.tone === 'secondary' ? 'border border-white/10 bg-white/5 text-slate-100 hover:bg-white/10' : 'bg-sky-500 text-slate-950 hover:bg-sky-400')">{{ action.label }}</a>
-            <NuxtLink v-for="action in card.actions.filter((item) => !isExternal(item.to))" :key="action.to" :to="action.to" :class="classNames('inline-flex items-center justify-center rounded-2xl px-4 py-3 text-sm font-semibold transition', action.tone === 'secondary' ? 'border border-white/10 bg-white/5 text-slate-100 hover:bg-white/10' : 'bg-sky-500 text-slate-950 hover:bg-sky-400')">{{ action.label }}</NuxtLink>
+            <a v-for="action in card.actions.filter((item) => isExternal(item.to))" :key="action.to" :href="action.to" target="_blank" rel="noreferrer" :class="classNames('inline-flex items-center justify-center rounded-2xl px-4 py-3 text-sm font-semibold transition', action.tone === 'secondary' ? 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50' : 'bg-sky-600 text-white hover:bg-sky-500')">{{ action.label }}</a>
+            <NuxtLink v-for="action in card.actions.filter((item) => !isExternal(item.to))" :key="action.to" :to="action.to" :class="classNames('inline-flex items-center justify-center rounded-2xl px-4 py-3 text-sm font-semibold transition', action.tone === 'secondary' ? 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50' : 'bg-sky-600 text-white hover:bg-sky-500')">{{ action.label }}</NuxtLink>
           </div>
         </div>
       </AppCard>

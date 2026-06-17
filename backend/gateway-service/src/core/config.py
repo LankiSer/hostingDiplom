@@ -1,3 +1,5 @@
+import os
+
 from pydantic import BaseModel
 
 
@@ -9,6 +11,8 @@ class AppSettings(BaseModel):
         "http://dashboard.gcloude.ru",
         "http://localhost",
         "http://localhost:3000",
+        "https://app.kostricyn.ru",
+        "http://app.kostricyn.ru",
     ]
     capabilities: list[str] = [
         "auth-service",
@@ -22,4 +26,8 @@ class AppSettings(BaseModel):
 
 
 def get_settings() -> AppSettings:
+    raw = os.getenv("ALLOWED_ORIGINS", "")
+    origins = [item.strip() for item in raw.split(",") if item.strip()]
+    if origins:
+        return AppSettings(allowed_origins=origins)
     return AppSettings()

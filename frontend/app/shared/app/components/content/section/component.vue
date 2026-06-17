@@ -7,7 +7,7 @@ defineProps<AppSectionProps>();
 <template>
   <section class="grid gap-4">
     <div v-if="title || description">
-      <h2 class="text-base font-semibold text-slate-100">{{ title }}</h2>
+      <h2 class="text-base font-semibold text-slate-900">{{ title }}</h2>
       <p v-if="description" class="mt-0.5 text-sm text-slate-500">{{ description }}</p>
     </div>
     <slot />

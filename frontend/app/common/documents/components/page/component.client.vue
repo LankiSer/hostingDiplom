@@ -67,37 +67,37 @@ async function cancel(inv: InvoiceEntity) {
 
 <template>
   <AppSection title="Документы" description="Счета и акты для юрлиц. Реальные данные из биллинга.">
-    <div v-if="pending && !invoices?.length" class="rounded-xl border border-white/5 px-5 py-12 text-center text-sm text-slate-500">
+    <div v-if="pending && !invoices?.length" class="rounded-xl border border-slate-200 bg-slate-50 px-5 py-12 text-center text-sm text-slate-500">
       Загрузка...
     </div>
-    <div v-else-if="!invoices?.length" class="rounded-xl border border-white/5 px-5 py-12 text-center text-sm text-slate-600">
+    <div v-else-if="!invoices?.length" class="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-5 py-12 text-center text-sm text-slate-500">
       Нет документов. Создайте счёт в разделе
-      <NuxtLink to="/billing" class="text-sky-400 hover:text-sky-300">Биллинг</NuxtLink>.
+      <NuxtLink to="/billing" class="text-sky-600 hover:underline">Биллинг</NuxtLink>.
     </div>
     <div v-else class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       <AppCard v-for="inv in invoices" :key="inv.id" class="flex flex-col">
         <div class="grid flex-1 gap-3">
           <div class="flex items-start justify-between gap-2">
-            <h3 class="truncate text-lg font-semibold text-white">{{ docNumber(inv) }}</h3>
+            <h3 class="truncate text-lg font-semibold text-slate-900">{{ docNumber(inv) }}</h3>
             <AppBadge :label="statusLabel(inv.status)" :tone="statusTone(inv.status)" />
           </div>
-          <p class="text-sm leading-5 text-slate-400">{{ inv.description || 'Без назначения' }}</p>
-          <div class="grid gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5">
+          <p class="text-sm leading-5 text-slate-500">{{ inv.description || 'Без назначения' }}</p>
+          <div class="grid gap-2 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2.5">
             <div class="flex items-center justify-between text-sm">
-              <span class="text-slate-400">Юрлицо</span>
-              <strong class="truncate max-w-[140px] text-right text-white">{{ inv.company_name }}</strong>
+              <span class="text-slate-500">Юрлицо</span>
+              <strong class="max-w-[140px] truncate text-right text-slate-900">{{ inv.company_name }}</strong>
             </div>
             <div class="flex items-center justify-between text-sm">
-              <span class="text-slate-400">ИНН</span>
-              <strong class="text-white">{{ inv.inn || '—' }}</strong>
+              <span class="text-slate-500">ИНН</span>
+              <strong class="text-slate-900">{{ inv.inn || '—' }}</strong>
             </div>
             <div class="flex items-center justify-between text-sm">
-              <span class="text-slate-400">Сумма</span>
-              <strong class="text-white">{{ formatAmount(inv.amount) }}</strong>
+              <span class="text-slate-500">Сумма</span>
+              <strong class="text-slate-900">{{ formatAmount(inv.amount) }}</strong>
             </div>
             <div class="flex items-center justify-between text-sm">
-              <span class="text-slate-400">Дата</span>
-              <strong class="text-white">{{ formatDate(inv.created_at) }}</strong>
+              <span class="text-slate-500">Дата</span>
+              <strong class="text-slate-900">{{ formatDate(inv.created_at) }}</strong>
             </div>
           </div>
           <div class="mt-auto flex flex-wrap gap-2">
@@ -122,6 +122,6 @@ async function cancel(inv: InvoiceEntity) {
         </div>
       </AppCard>
     </div>
-    <p v-if="state.error" class="mt-4 text-sm text-rose-300">{{ state.error }}</p>
+    <p v-if="state.error" class="mt-4 text-sm text-rose-600">{{ state.error }}</p>
   </AppSection>
 </template>

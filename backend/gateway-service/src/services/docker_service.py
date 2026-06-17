@@ -38,7 +38,13 @@ def _generate_dockerfile(runtime: str) -> str:
     )
 
 
-def clone_and_build(slug: str, git_url: str, runtime: str) -> dict:
+def clone_and_build(
+    slug: str,
+    git_url: str,
+    runtime: str,
+    branch: str = "main",
+    root_path: str = "",
+) -> dict:
     client = _get_client()
     if not client:
         return {"success": False, "error": "Docker daemon not reachable"}
@@ -51,8 +57,13 @@ def clone_and_build(slug: str, git_url: str, runtime: str) -> dict:
             shutil.rmtree(work_dir)
         os.makedirs(WORKSPACE, exist_ok=True)
 
+        clone_cmd = ["git", "clone", "--depth", "1"]
+        if branch:
+            clone_cmd.extend(["-b", branch])
+        clone_cmd.extend([git_url, work_dir])
+
         result = subprocess.run(
-            ["git", "clone", "--depth", "1", git_url, work_dir],
+            clone_cmd,
             capture_output=True,
             text=True,
             timeout=120,
@@ -60,7 +71,14 @@ def clone_and_build(slug: str, git_url: str, runtime: str) -> dict:
         if result.returncode != 0:
             return {"success": False, "error": f"git clone failed: {result.stderr[:500]}"}
 
-        dockerfile_path = os.path.join(work_dir, "Dockerfile")
+        build_dir = work_dir
+        if root_path:
+            candidate = os.path.join(work_dir, root_path.strip("/\\"))
+            if not os.path.isdir(candidate):
+                return {"success": False, "error": f"Root path not found: {root_path}"}
+            build_dir = candidate
+
+        dockerfile_path = os.path.join(build_dir, "Dockerfile")
         if not os.path.exists(dockerfile_path):
             with open(dockerfile_path, "w") as fh:
                 fh.write(_generate_dockerfile(runtime))
@@ -69,7 +87,7 @@ def clone_and_build(slug: str, git_url: str, runtime: str) -> dict:
         _stop_old_container(client, slug)
 
         _, build_iter = client.images.build(
-            path=work_dir,
+            path=build_dir,
             tag=image_tag,
             rm=True,
             forcerm=True,

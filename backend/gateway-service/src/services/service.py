@@ -16,25 +16,37 @@ class GatewayService:
     def list_routes(self) -> list[dict[str, str]]:
         return [asdict(route) for route in self.repository.list_routes()]
 
-    def login(self, email: str, organization: str) -> dict[str, str]:
-        return self.platform_repository.login(email=email, organization=organization)
-
-    def register(
+    def login(
         self,
-        company_name: str,
-        contact_name: str,
         email: str,
-        inn: str,
-        accept_policy: bool,
-        accept_personal_data: bool,
+        accept_policy: bool = False,
+        accept_personal_data: bool = False,
+        password: str = "",
     ) -> dict[str, str]:
         if not accept_policy or not accept_personal_data:
             raise ValueError("Required legal consents were not accepted.")
+        if not email.strip():
+            raise ValueError("Email is required.")
+        return self.platform_repository.login(email=email, password=password)
+
+    def register(
+        self,
+        display_name: str,
+        email: str,
+        accept_policy: bool,
+        accept_personal_data: bool,
+        password: str = "",
+        workspace_name: str = "",
+    ) -> dict[str, str]:
+        if not accept_policy or not accept_personal_data:
+            raise ValueError("Required legal consents were not accepted.")
+        if not display_name.strip() or not email.strip():
+            raise ValueError("Name and email are required.")
         return self.platform_repository.register(
-            company_name=company_name,
-            contact_name=contact_name,
+            display_name=display_name,
             email=email,
-            inn=inn,
+            password=password,
+            workspace_name=workspace_name,
         )
 
     def get_dashboard(self) -> dict[str, object]:
@@ -64,8 +76,8 @@ class GatewayService:
     def get_activity(self) -> dict[str, object]:
         return self.platform_repository.activity()
 
-    def get_team(self) -> dict[str, object]:
-        return self.platform_repository.team()
+    def get_team_overview(self) -> dict[str, object]:
+        return self.platform_repository.team_overview()
 
     def get_access(self) -> dict[str, object]:
         return self.platform_repository.access()

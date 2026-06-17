@@ -12,6 +12,18 @@ def get_connection():
     return psycopg2.connect(DATABASE_URL, cursor_factory=RealDictCursor)
 
 
+def _ensure_column(cur, table: str, column: str, definition: str) -> None:
+    cur.execute(
+        """
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = %s AND column_name = %s
+        """,
+        (table, column),
+    )
+    if not cur.fetchone():
+        cur.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
+
+
 def serialize_row(row: dict | None) -> dict | None:
     if row is None:
         return None
@@ -36,6 +48,9 @@ def init_db() -> None:
                     name VARCHAR(100) NOT NULL,
                     slug VARCHAR(100) NOT NULL UNIQUE,
                     description TEXT DEFAULT '',
+                    git_url TEXT DEFAULT '',
+                    git_branch VARCHAR(100) DEFAULT 'main',
+                    deploy_config JSONB DEFAULT '{}',
                     created_at TIMESTAMPTZ DEFAULT now()
                 )
             """)
@@ -46,7 +61,10 @@ def init_db() -> None:
                     name VARCHAR(100) NOT NULL,
                     slug VARCHAR(100) NOT NULL UNIQUE,
                     runtime VARCHAR(20) DEFAULT 'node',
+                    app_type VARCHAR(20) DEFAULT 'custom',
                     git_url TEXT DEFAULT '',
+                    root_path TEXT DEFAULT '',
+                    branch VARCHAR(100) DEFAULT 'main',
                     container_id VARCHAR(100) DEFAULT '',
                     container_name VARCHAR(100) DEFAULT '',
                     status VARCHAR(20) DEFAULT 'idle',
@@ -54,6 +72,12 @@ def init_db() -> None:
                     created_at TIMESTAMPTZ DEFAULT now()
                 )
             """)
+            _ensure_column(cur, "projects", "git_url", "TEXT DEFAULT ''")
+            _ensure_column(cur, "projects", "git_branch", "VARCHAR(100) DEFAULT 'main'")
+            _ensure_column(cur, "projects", "deploy_config", "JSONB DEFAULT '{}'")
+            _ensure_column(cur, "applications", "app_type", "VARCHAR(20) DEFAULT 'custom'")
+            _ensure_column(cur, "applications", "root_path", "TEXT DEFAULT ''")
+            _ensure_column(cur, "applications", "branch", "VARCHAR(100) DEFAULT 'main'")
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS deployments (
                     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

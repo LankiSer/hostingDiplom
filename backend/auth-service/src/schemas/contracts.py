@@ -15,7 +15,15 @@ class LoginResponse(BaseModel):
 class OrganizationRegistrationRequest(BaseModel):
     company_name: str
     email: str
-    inn: str
+    inn: str = ""
+
+
+class RegisterRequest(BaseModel):
+    email: str
+    password: str = ""
+    company_name: str = ""
+    name: str = ""
+    display_name: str = ""
 
 
 class OrganizationRegistrationResponse(BaseModel):

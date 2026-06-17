@@ -3,14 +3,16 @@ from pydantic import BaseModel
 
 class PlatformLoginRequest(BaseModel):
     email: str
-    organization: str
+    password: str = ""
+    accept_policy: bool = False
+    accept_personal_data: bool = False
 
 
 class PlatformRegisterRequest(BaseModel):
-    company_name: str
-    contact_name: str
+    display_name: str
     email: str
-    inn: str
+    password: str = ""
+    workspace_name: str = ""
     accept_policy: bool
     accept_personal_data: bool
 

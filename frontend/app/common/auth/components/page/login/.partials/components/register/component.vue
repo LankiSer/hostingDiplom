@@ -9,30 +9,30 @@ import { usePlatformApi } from '~/shared/app/hooks/use-platform-api';
 
 const emit = defineEmits<{ success: [session: SessionEntity] }>();
 const { post } = usePlatformApi();
-const companyName = ref('ООО Гклауд');
-const contactName = ref('Александр Смирнов');
-const email = ref('owner@gcloude.ru');
-const inn = ref('7701234567');
-const acceptPolicy = ref(false);
-const acceptPersonalData = ref(false);
+const displayName = ref('');
+const email = ref('');
+const password = ref('');
+const workspaceName = ref('');
+const acceptTerms = ref(false);
 const errorMessage = ref('');
 const isSubmitting = ref(false);
 
 async function handleSubmit() {
+  if (!acceptTerms.value) return;
   errorMessage.value = '';
   isSubmitting.value = true;
   try {
     const session = await post<SessionEntity>('/api/v1/platform/register', {
-      accept_personal_data: acceptPersonalData.value,
-      accept_policy: acceptPolicy.value,
-      company_name: companyName.value,
-      contact_name: contactName.value,
+      accept_personal_data: acceptTerms.value,
+      accept_policy: acceptTerms.value,
+      display_name: displayName.value,
       email: email.value,
-      inn: inn.value
+      password: password.value,
+      workspace_name: workspaceName.value,
     });
     emit('success', session);
   } catch {
-    errorMessage.value = 'Не удалось зарегистрировать организацию. Повтори попытку через локальный кабинет.';
+    errorMessage.value = 'Не удалось зарегистрироваться. Проверь данные и попробуй снова.';
   } finally {
     isSubmitting.value = false;
   }
@@ -41,13 +41,26 @@ async function handleSubmit() {
 
 <template>
   <form class="grid gap-4" @submit.prevent="handleSubmit">
-    <AppInput v-model="companyName" :label="AUTH_LOGIN_COPY.registerCompanyLabel" :placeholder="AUTH_LOGIN_COPY.registerCompanyPlaceholder" />
-    <AppInput v-model="contactName" :label="AUTH_LOGIN_COPY.registerContactLabel" :placeholder="AUTH_LOGIN_COPY.registerContactPlaceholder" />
-    <AppInput v-model="email" :label="AUTH_LOGIN_COPY.emailLabel" :placeholder="AUTH_LOGIN_COPY.emailPlaceholder" />
-    <AppInput v-model="inn" :label="AUTH_LOGIN_COPY.registerInnLabel" :placeholder="AUTH_LOGIN_COPY.registerInnPlaceholder" />
-    <AppCheckbox v-model="acceptPolicy" :label="AUTH_LOGIN_COPY.consentPolicy" />
-    <AppCheckbox v-model="acceptPersonalData" :label="AUTH_LOGIN_COPY.consentPersonalData" />
-    <p v-if="errorMessage" class="text-sm text-rose-300">{{ errorMessage }}</p>
-    <AppButton :disabled="isSubmitting || !acceptPolicy || !acceptPersonalData" :label="isSubmitting ? AUTH_LOGIN_COPY.registerSubmitting : AUTH_LOGIN_COPY.registerSubmit" type="submit" />
+    <AppInput v-model="displayName" :label="AUTH_LOGIN_COPY.registerNameLabel" :placeholder="AUTH_LOGIN_COPY.registerNamePlaceholder" />
+    <AppInput v-model="email" :label="AUTH_LOGIN_COPY.emailLabel" :placeholder="AUTH_LOGIN_COPY.emailPlaceholder" type="email" />
+    <AppInput v-model="password" :label="AUTH_LOGIN_COPY.passwordLabel" :placeholder="AUTH_LOGIN_COPY.passwordPlaceholder" type="password" />
+    <div class="grid gap-1.5">
+      <AppInput v-model="workspaceName" :label="AUTH_LOGIN_COPY.registerWorkspaceLabel" :placeholder="AUTH_LOGIN_COPY.registerWorkspacePlaceholder" />
+      <p class="text-xs leading-5 text-slate-500">{{ AUTH_LOGIN_COPY.registerWorkspaceHint }}</p>
+    </div>
+
+    <AppCheckbox v-model="acceptTerms">
+      Я принимаю
+      <NuxtLink class="text-sky-600 hover:underline" to="/legal/privacy">пользовательское соглашение</NuxtLink>
+      и
+      <NuxtLink class="text-sky-600 hover:underline" to="/legal/personal-data">политику обработки данных</NuxtLink>
+    </AppCheckbox>
+
+    <p v-if="errorMessage" class="text-sm text-rose-600">{{ errorMessage }}</p>
+    <AppButton
+      :disabled="isSubmitting || !acceptTerms || !displayName || !email || !password"
+      :label="isSubmitting ? AUTH_LOGIN_COPY.registerSubmitting : AUTH_LOGIN_COPY.registerSubmit"
+      type="submit"
+    />
   </form>
 </template>

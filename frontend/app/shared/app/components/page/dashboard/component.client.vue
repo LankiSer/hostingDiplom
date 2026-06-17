@@ -29,7 +29,7 @@ const runningApps = computed(() => apps.value?.filter(a => a.status === 'running
 const recentDeploys = computed(() => deployments.value?.slice(0, 5) ?? []);
 
 function deployStatus(s: string) {
-  return s === 'running' ? 'text-emerald-400' : s === 'building' ? 'text-amber-400' : s === 'failed' ? 'text-rose-400' : 'text-slate-500';
+  return s === 'running' ? 'text-emerald-600' : s === 'building' ? 'text-amber-600' : s === 'failed' ? 'text-rose-600' : 'text-slate-500';
 }
 
 function formatDate(iso: string) {
@@ -39,103 +39,103 @@ function formatDate(iso: string) {
 
 <template>
   <div class="grid gap-6">
-    <!-- Stats row -->
     <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
       <button
         v-for="stat in stats"
         :key="stat.label"
-        class="rounded-xl border border-white/5 bg-slate-900/60 p-4 text-left transition hover:border-white/10 hover:bg-slate-900"
+        class="rounded-xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:border-sky-200 hover:shadow"
         @click="router.push(stat.to)"
       >
-        <p class="text-2xl font-bold text-slate-100">{{ stat.value }}</p>
+        <p class="text-2xl font-bold text-slate-900">{{ stat.value }}</p>
         <p class="mt-1 text-sm text-slate-500">{{ stat.label }}</p>
       </button>
     </div>
 
-    <!-- Quick actions -->
     <div>
-      <p class="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-600">Быстрые действия</p>
+      <p class="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Быстрые действия</p>
       <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <button
-          class="flex flex-col gap-2 rounded-xl border border-sky-500/30 bg-sky-500/10 p-4 text-left transition hover:bg-sky-500/15"
+          class="flex flex-col gap-2 rounded-xl border border-sky-200 bg-sky-50 p-4 text-left transition hover:bg-sky-100"
           @click="router.push('/projects')"
         >
           <span class="text-lg">🚀</span>
-          <span class="text-sm font-medium text-sky-300">Задеплоить</span>
-          <span class="text-xs text-slate-500">Новое приложение</span>
+          <span class="text-sm font-medium text-sky-700">Задеплоить</span>
+          <span class="text-xs text-slate-500">Frontend + backend из Git</span>
         </button>
         <button
-          class="flex flex-col gap-2 rounded-xl border border-white/5 bg-slate-900/60 p-4 text-left transition hover:bg-slate-900"
+          class="flex flex-col gap-2 rounded-xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:border-sky-200"
           @click="router.push('/projects')"
         >
           <span class="text-lg">📁</span>
-          <span class="text-sm font-medium text-slate-200">Проект</span>
+          <span class="text-sm font-medium text-slate-800">Проект</span>
           <span class="text-xs text-slate-500">Создать проект</span>
         </button>
         <button
-          class="flex flex-col gap-2 rounded-xl border border-white/5 bg-slate-900/60 p-4 text-left transition hover:bg-slate-900"
+          class="flex flex-col gap-2 rounded-xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:border-sky-200"
           @click="router.push('/billing')"
         >
           <span class="text-lg">💳</span>
-          <span class="text-sm font-medium text-slate-200">Биллинг</span>
+          <span class="text-sm font-medium text-slate-800">Биллинг</span>
           <span class="text-xs text-slate-500">Счета и оплата</span>
         </button>
         <button
-          class="flex flex-col gap-2 rounded-xl border border-white/5 bg-slate-900/60 p-4 text-left transition hover:bg-slate-900"
+          class="flex flex-col gap-2 rounded-xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:border-sky-200"
           @click="router.push('/logs')"
         >
           <span class="text-lg">📋</span>
-          <span class="text-sm font-medium text-slate-200">Логи</span>
+          <span class="text-sm font-medium text-slate-800">Логи</span>
           <span class="text-xs text-slate-500">Активность</span>
         </button>
       </div>
     </div>
 
     <div class="grid gap-4 lg:grid-cols-2">
-      <!-- Running apps -->
       <div>
         <div class="mb-3 flex items-center justify-between">
-          <p class="text-xs font-semibold uppercase tracking-wider text-slate-600">Запущенные приложения</p>
-          <button class="text-xs text-sky-400 hover:underline" @click="router.push('/applications')">Все →</button>
+          <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Запущенные приложения</p>
+          <button class="text-xs text-sky-600 hover:underline" @click="router.push('/applications')">Все →</button>
         </div>
-        <div v-if="!runningApps.length" class="rounded-xl border border-white/5 px-4 py-6 text-center text-sm text-slate-600">
+        <div v-if="!runningApps.length" class="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">
           Нет запущенных приложений
         </div>
-        <div v-else class="overflow-hidden rounded-xl border border-white/5">
-          <div v-for="(app, i) in runningApps" :key="app.id"
-            :class="['flex cursor-pointer items-center justify-between px-4 py-3 transition hover:bg-white/5', i > 0 && 'border-t border-white/5']"
+        <div v-else class="overflow-hidden rounded-xl border border-slate-200 bg-white">
+          <div
+            v-for="(app, i) in runningApps"
+            :key="app.id"
+            :class="['flex cursor-pointer items-center justify-between px-4 py-3 transition hover:bg-slate-50', i > 0 && 'border-t border-slate-100']"
             @click="router.push(`/applications/${app.id}`)"
           >
             <div class="min-w-0">
-              <p class="truncate text-sm text-slate-200">{{ app.name }}</p>
+              <p class="truncate text-sm font-medium text-slate-800">{{ app.name }}</p>
               <p class="truncate text-xs text-slate-500">{{ app.project_name }}</p>
             </div>
             <div class="flex shrink-0 items-center gap-2">
-              <span class="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-              <a v-if="app.url" :href="app.url" target="_blank" class="text-xs text-sky-400 hover:underline" @click.stop>↗</a>
+              <span class="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+              <a v-if="app.url" :href="app.url" target="_blank" class="text-xs text-sky-600 hover:underline" @click.stop>↗</a>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Recent deployments -->
       <div>
         <div class="mb-3 flex items-center justify-between">
-          <p class="text-xs font-semibold uppercase tracking-wider text-slate-600">Последние деплои</p>
-          <button class="text-xs text-sky-400 hover:underline" @click="router.push('/deployments')">Все →</button>
+          <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Последние деплои</p>
+          <button class="text-xs text-sky-600 hover:underline" @click="router.push('/deployments')">Все →</button>
         </div>
-        <div v-if="!recentDeploys.length" class="rounded-xl border border-white/5 px-4 py-6 text-center text-sm text-slate-600">
-          Нет деплоев. <button class="text-sky-400 hover:underline" @click="router.push('/projects')">Задеплоить первое →</button>
+        <div v-if="!recentDeploys.length" class="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">
+          Нет деплоев. <button class="text-sky-600 hover:underline" @click="router.push('/projects')">Задеплоить первое →</button>
         </div>
-        <div v-else class="overflow-hidden rounded-xl border border-white/5">
-          <div v-for="(d, i) in recentDeploys" :key="d.id"
-            :class="['flex cursor-pointer items-center justify-between px-4 py-3 transition hover:bg-white/5', i > 0 && 'border-t border-white/5']"
+        <div v-else class="overflow-hidden rounded-xl border border-slate-200 bg-white">
+          <div
+            v-for="(d, i) in recentDeploys"
+            :key="d.id"
+            :class="['flex cursor-pointer items-center justify-between px-4 py-3 transition hover:bg-slate-50', i > 0 && 'border-t border-slate-100']"
             @click="router.push(`/applications/${d.app_id}`)"
           >
-            <p class="min-w-0 truncate text-sm text-slate-300">{{ d.git_url || d.id.slice(0, 8) }}</p>
+            <p class="min-w-0 truncate text-sm text-slate-700">{{ d.git_url || d.id.slice(0, 8) }}</p>
             <div class="flex shrink-0 items-center gap-3">
-              <span :class="['text-xs', deployStatus(d.status)]">{{ d.status }}</span>
-              <span class="text-xs text-slate-600">{{ formatDate(d.created_at) }}</span>
+              <span :class="['text-xs font-medium', deployStatus(d.status)]">{{ d.status }}</span>
+              <span class="text-xs text-slate-400">{{ formatDate(d.created_at) }}</span>
             </div>
           </div>
         </div>

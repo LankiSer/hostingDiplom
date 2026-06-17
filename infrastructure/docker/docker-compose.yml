@@ -38,8 +38,7 @@ services:
       - gateway-service
       - demo-crm-app
       - demo-bot-app
-    ports:
-      - "80:80"
+    # Порты nginx задаются в docker-compose.publish.yml или docker-compose.host-nginx.yml
     volumes:
       - ../nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - nginx_confd:/etc/nginx/platform.d

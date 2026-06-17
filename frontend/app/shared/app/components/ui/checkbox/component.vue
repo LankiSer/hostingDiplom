@@ -10,13 +10,15 @@ function handleChange(event: Event) {
 </script>
 
 <template>
-  <label class="flex items-start gap-3 text-sm text-slate-300">
+  <label class="flex items-start gap-3 text-sm text-slate-600">
     <input
       :checked="modelValue"
-      class="mt-1 h-4 w-4 rounded border border-white/20 bg-slate-950/70"
+      class="mt-0.5 h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
       type="checkbox"
       @change="handleChange"
     >
-    <span class="leading-5">{{ label }}</span>
+    <span class="leading-5">
+      <slot>{{ label }}</slot>
+    </span>
   </label>
 </template>

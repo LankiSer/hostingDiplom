@@ -102,11 +102,11 @@ async function cancel(inv: InvoiceEntity) {
   <div class="grid gap-4">
     <div class="flex items-center justify-between">
       <div>
-        <h2 class="text-base font-semibold text-slate-100">Биллинг</h2>
+        <h2 class="text-xl font-semibold text-slate-900">Биллинг</h2>
         <p class="text-sm text-slate-500">
           1С:
-          <span v-if="(onecStatus as any)?.onec_configured" class="text-emerald-400">подключена ✓</span>
-          <span v-else class="text-slate-600">обмен через файл — выгрузите JSON и загрузите в 1С</span>
+          <span v-if="(onecStatus as any)?.onec_configured" class="text-emerald-600">подключена ✓</span>
+          <span v-else>обмен через файл — выгрузите JSON и загрузите в 1С</span>
         </p>
       </div>
       <div class="flex gap-2">
@@ -117,7 +117,7 @@ async function cancel(inv: InvoiceEntity) {
 
     <AppCard v-if="showForm">
       <div class="grid gap-3">
-        <h3 class="text-sm font-medium text-slate-200">Выставить счёт</h3>
+        <h3 class="text-sm font-semibold text-slate-900">Выставить счёт</h3>
         <div class="grid gap-3 sm:grid-cols-2">
           <AppInput v-model="form.company_name" label="Компания" placeholder="ООО Ромашка" />
           <AppInput v-model="form.inn" label="ИНН" placeholder="7712345678" />
@@ -130,29 +130,29 @@ async function cancel(inv: InvoiceEntity) {
           <AppButton :disabled="state.saving" :label="state.saving ? 'Создаём...' : 'Выставить счёт'" @click="createInvoice" />
           <AppButton label="Отмена" tone="secondary" @click="showForm = false" />
         </div>
-        <p v-if="state.error" class="text-sm text-rose-300">{{ state.error }}</p>
+        <p v-if="state.error" class="text-sm text-rose-600">{{ state.error }}</p>
       </div>
     </AppCard>
 
-    <div v-if="!invoices?.length" class="rounded-xl border border-white/5 px-5 py-8 text-center text-sm text-slate-600">
+    <div v-if="!invoices?.length" class="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-5 py-8 text-center text-sm text-slate-500">
       Нет счётов. Создайте первый.
     </div>
 
-    <div v-else class="overflow-hidden rounded-xl border border-white/5">
+    <div v-else class="overflow-hidden rounded-xl border border-slate-200 bg-white">
       <div
         v-for="(inv, i) in invoices"
         :key="inv.id"
-        :class="['grid grid-cols-1 gap-3 px-4 py-3 sm:grid-cols-[1fr_auto_auto] sm:items-center', i > 0 && 'border-t border-white/5']"
+        :class="['grid grid-cols-1 gap-3 px-4 py-3 sm:grid-cols-[1fr_auto_auto] sm:items-center', i > 0 && 'border-t border-slate-100']"
       >
         <div class="min-w-0">
-          <p class="truncate text-sm font-medium text-slate-200">{{ inv.company_name }}</p>
+          <p class="truncate text-sm font-medium text-slate-900">{{ inv.company_name }}</p>
           <p class="text-xs text-slate-500">
             ИНН {{ inv.inn || '—' }} · {{ inv.description || 'без назначения' }} · {{ formatDate(inv.created_at) }}
             <span v-if="inv.onec_number" class="ml-2 text-sky-500">№{{ inv.onec_number }} в 1С</span>
           </p>
         </div>
         <div class="flex shrink-0 items-center gap-3">
-          <span class="text-sm font-semibold text-slate-200">{{ formatAmount(inv.amount) }}</span>
+          <span class="text-sm font-semibold text-slate-900">{{ formatAmount(inv.amount) }}</span>
           <AppBadge :label="statusLabel(inv.status)" :tone="statusTone(inv.status)" />
         </div>
         <div class="flex flex-wrap gap-2">
