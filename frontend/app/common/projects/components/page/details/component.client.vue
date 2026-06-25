@@ -7,6 +7,7 @@ import AppCard from '~/shared/app/components/ui/card/component.vue';
 import AppCheckbox from '~/shared/app/components/ui/checkbox/component.vue';
 import AppInput from '~/shared/app/components/ui/input/component.vue';
 import { usePlatformApi } from '~/shared/app/hooks/use-platform-api';
+import { usePermissions } from '~/shared/app/hooks/use-permissions';
 import type { ProjectDetailsPageProps } from './interface';
 
 interface App {
@@ -35,6 +36,7 @@ interface Project {
 
 const props = defineProps<ProjectDetailsPageProps>();
 const { get, post, put } = usePlatformApi();
+const { can } = usePermissions();
 const router = useRouter();
 
 const { data: project, refresh: refreshProject } = useAsyncData<Project>(
@@ -90,6 +92,7 @@ function appTypeLabel(t: string) {
 }
 
 async function persistDeployConfig() {
+  if (!can('projects:write')) return;
   await put(`/api/v1/hosting/projects/${props.projectId}/deploy-config`, {
     git_url: deployForm.git_url,
     git_branch: deployForm.git_branch,
@@ -124,6 +127,7 @@ async function saveDeployConfig() {
 }
 
 async function deployStack() {
+  if (!can('deploys:write')) return;
   state.deploying = true;
   state.error = '';
   state.success = '';
@@ -140,7 +144,7 @@ async function deployStack() {
 }
 
 async function createSingleApp() {
-  if (!singleForm.name.trim()) return;
+  if (!singleForm.name.trim() || !can('projects:write')) return;
   state.saving = true;
   state.error = '';
   try {
@@ -173,8 +177,8 @@ async function createSingleApp() {
         <p class="text-sm text-slate-500">{{ project?.description || 'Настройте Git и задеплойте frontend и backend' }}</p>
       </div>
       <div class="flex gap-2">
-        <AppButton label="Одно приложение" tone="secondary" @click="showSingleForm = !showSingleForm" />
-        <AppButton :disabled="state.deploying" :label="state.deploying ? 'Деплоим...' : 'Задеплоить стек'" @click="deployStack" />
+        <AppButton v-if="can('projects:write')" label="Одно приложение" tone="secondary" @click="showSingleForm = !showSingleForm" />
+        <AppButton v-if="can('deploys:write')" :disabled="state.deploying" :label="state.deploying ? 'Деплоим...' : 'Задеплоить стек'" @click="deployStack" />
       </div>
     </div>
 
@@ -227,7 +231,7 @@ async function createSingleApp() {
         </div>
 
         <div class="flex flex-wrap items-center gap-2">
-          <AppButton :disabled="state.saving" :label="state.saving ? 'Сохраняем...' : 'Сохранить правила'" tone="secondary" @click="saveDeployConfig" />
+          <AppButton v-if="can('projects:write')" :disabled="state.saving" :label="state.saving ? 'Сохраняем...' : 'Сохранить правила'" tone="secondary" @click="saveDeployConfig" />
         </div>
 
         <p v-if="state.success" class="text-sm text-emerald-600">{{ state.success }}</p>

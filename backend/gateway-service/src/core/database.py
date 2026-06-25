@@ -101,6 +101,78 @@ def init_db() -> None:
                     created_at TIMESTAMPTZ DEFAULT now()
                 )
             """)
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS team_members (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    name VARCHAR(120) NOT NULL,
+                    email VARCHAR(200) NOT NULL UNIQUE,
+                    role VARCHAR(20) NOT NULL DEFAULT 'ops',
+                    status VARCHAR(20) NOT NULL DEFAULT 'invited',
+                    projects INTEGER NOT NULL DEFAULT 0,
+                    invite_token VARCHAR(80) DEFAULT '',
+                    invite_expires_at TIMESTAMPTZ,
+                    invited_at TIMESTAMPTZ DEFAULT now(),
+                    activated_at TIMESTAMPTZ,
+                    last_seen_at TIMESTAMPTZ,
+                    created_by VARCHAR(200) DEFAULT '',
+                    created_at TIMESTAMPTZ DEFAULT now()
+                )
+            """)
+            _ensure_column(cur, "team_members", "invite_token", "VARCHAR(80) DEFAULT ''")
+            _ensure_column(cur, "team_members", "invite_expires_at", "TIMESTAMPTZ")
+            _ensure_column(cur, "team_members", "invited_at", "TIMESTAMPTZ DEFAULT now()")
+            _ensure_column(cur, "team_members", "activated_at", "TIMESTAMPTZ")
+            _ensure_column(cur, "team_members", "last_seen_at", "TIMESTAMPTZ")
+            _ensure_column(cur, "team_members", "created_by", "VARCHAR(200) DEFAULT ''")
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS audit_logs (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    actor_email VARCHAR(200) NOT NULL DEFAULT '',
+                    actor_role VARCHAR(40) NOT NULL DEFAULT '',
+                    action VARCHAR(120) NOT NULL,
+                    resource_type VARCHAR(80) NOT NULL DEFAULT '',
+                    resource_id VARCHAR(120) NOT NULL DEFAULT '',
+                    message TEXT NOT NULL DEFAULT '',
+                    metadata JSONB DEFAULT '{}',
+                    ip VARCHAR(80) NOT NULL DEFAULT '',
+                    created_at TIMESTAMPTZ DEFAULT now()
+                )
+            """)
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS team_call_sessions (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    title VARCHAR(160) NOT NULL,
+                    status VARCHAR(20) NOT NULL DEFAULT 'active',
+                    created_by VARCHAR(200) NOT NULL DEFAULT '',
+                    tldraw_room VARCHAR(160) NOT NULL DEFAULT '',
+                    tldraw_url TEXT NOT NULL DEFAULT '',
+                    started_at TIMESTAMPTZ DEFAULT now(),
+                    ended_at TIMESTAMPTZ,
+                    created_at TIMESTAMPTZ DEFAULT now()
+                )
+            """)
+            _ensure_column(cur, "team_call_sessions", "tldraw_room", "VARCHAR(160) NOT NULL DEFAULT ''")
+            _ensure_column(cur, "team_call_sessions", "tldraw_url", "TEXT NOT NULL DEFAULT ''")
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS team_call_messages (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    session_id UUID REFERENCES team_call_sessions(id) ON DELETE CASCADE,
+                    author_email VARCHAR(200) NOT NULL DEFAULT '',
+                    author_name VARCHAR(120) NOT NULL DEFAULT '',
+                    kind VARCHAR(30) NOT NULL DEFAULT 'chat',
+                    body TEXT NOT NULL DEFAULT '',
+                    created_at TIMESTAMPTZ DEFAULT now()
+                )
+            """)
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS users (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    email VARCHAR(200) NOT NULL UNIQUE,
+                    name VARCHAR(120) NOT NULL DEFAULT '',
+                    password_hash VARCHAR(255) NOT NULL,
+                    created_at TIMESTAMPTZ DEFAULT now()
+                )
+            """)
         conn.commit()
     finally:
         conn.close()

@@ -12,6 +12,9 @@
       <div class="rounded-2xl border border-slate-200/80 bg-white/95 p-6 shadow-[0_20px_50px_-30px_rgba(15,23,42,0.35)] backdrop-blur-sm">
         <slot />
       </div>
+      <div class="mt-6">
+        <LegalFooter centered />
+      </div>
     </div>
   </main>
 </template>

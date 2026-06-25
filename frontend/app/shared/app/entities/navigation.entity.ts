@@ -15,13 +15,15 @@ export type AppNavigationIcon =
 export interface AppNavigationItem {
   group: AppNavigationGroup;
   icon: AppNavigationIcon;
+  hint?: string;
   label: string;
+  permission?: string;
   to: string;
 }
 
 export const NAV_GROUP_LABELS: Record<AppNavigationGroup, string> = {
   account: 'Аккаунт',
   billing: 'Бухгалтерия',
-  platform: 'Платформа',
+  platform: 'Хостинг',
   release: 'Релизы',
 };

@@ -3,7 +3,7 @@ definePageMeta({
   middleware: 'auth',
 });
 
-await navigateTo({ path: '/team', query: { tab: 'roles' } }, { replace: true });
+await navigateTo('/team', { replace: true });
 </script>
 
 <template>

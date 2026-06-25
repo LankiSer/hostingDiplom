@@ -21,6 +21,7 @@ const roleLabel = computed(() => {
   if (role === 'owner') return 'Владелец';
   if (role === 'ops') return 'DevOps';
   if (role === 'finance') return 'Финансы';
+  if (role === 'viewer') return 'Наблюдатель';
   return role ?? '';
 });
 
@@ -78,6 +79,7 @@ function toggleMenu() {
         <div class="grid p-1">
           <NuxtLink class="rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-slate-50" to="/settings" @click="menuOpen = false">Настройки</NuxtLink>
           <NuxtLink class="rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-slate-50" to="/team" @click="menuOpen = false">Команда</NuxtLink>
+          <NuxtLink class="rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-slate-50" to="/legal" @click="menuOpen = false">Юридическая информация</NuxtLink>
           <button class="rounded-lg px-3 py-2 text-left text-sm text-rose-600 hover:bg-rose-50" type="button" @click="handleLogout">Выйти</button>
         </div>
       </div>

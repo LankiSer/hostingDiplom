@@ -1,15 +1,18 @@
 import logging
 import os
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel, Field
 
+from src.core.rbac import CurrentUser, require_permission
+from src.repositories.audit_repository import AuditRepository
 from src.repositories.hosting_repository import HostingRepository
 from src.services import docker_service, nginx_service
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/hosting")
 repo = HostingRepository()
+audit = AuditRepository()
 
 
 def _enrich_app(app: dict) -> dict:
@@ -117,6 +120,22 @@ def _deploy_background(
     )
 
 
+def _nginx_kwargs_for_app(app: dict) -> dict:
+    proxy_api = app.get("app_type") == "frontend"
+    api_container: str | None = None
+    api_port = 8000
+    if proxy_api and app.get("project_id"):
+        backend = repo.get_app_by_type(app["project_id"], "backend")
+        if backend and backend.get("container_name") and backend.get("status") == "running":
+            api_container = backend["container_name"]
+            api_port = 8000 if backend.get("runtime") == "python" else 3000
+    return {
+        "proxy_api": proxy_api,
+        "api_container": api_container,
+        "api_port": api_port,
+    }
+
+
 def _refresh_frontend_api_proxy(project_id: str) -> None:
     frontend = repo.get_app_by_type(project_id, "frontend")
     backend = repo.get_app_by_type(project_id, "backend")
@@ -197,10 +216,21 @@ def list_projects() -> list[dict]:
 
 
 @router.post("/projects", status_code=201)
-def create_project(body: ProjectCreate) -> dict:
+def create_project(
+    body: ProjectCreate,
+    actor: CurrentUser = Depends(require_permission("projects:write")),
+) -> dict:
     if not body.name.strip():
         raise HTTPException(status_code=400, detail="Name is required")
-    return repo.create_project(body.name.strip(), body.description)
+    project = repo.create_project(body.name.strip(), body.description)
+    audit.record(
+        actor=actor,
+        action="hosting.project_create",
+        resource_type="project",
+        resource_id=project["id"],
+        message=f"Создан проект {project['name']}",
+    )
+    return project
 
 
 @router.get("/projects/{project_id}")
@@ -212,7 +242,11 @@ def get_project(project_id: str) -> dict:
 
 
 @router.put("/projects/{project_id}/deploy-config")
-def update_deploy_config(project_id: str, body: ProjectDeployConfigUpdate) -> dict:
+def update_deploy_config(
+    project_id: str,
+    body: ProjectDeployConfigUpdate,
+    actor: CurrentUser = Depends(require_permission("projects:write")),
+) -> dict:
     project = repo.get_project(project_id)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -229,11 +263,24 @@ def update_deploy_config(project_id: str, body: ProjectDeployConfigUpdate) -> di
         body.git_branch.strip() or "main",
         deploy_config,
     )
-    return updated or project
+    result = updated or project
+    audit.record(
+        actor=actor,
+        action="hosting.deploy_config_update",
+        resource_type="project",
+        resource_id=project_id,
+        message=f"Обновлены настройки деплоя проекта {result.get('name', project_id)}",
+        metadata={"git_branch": body.git_branch, "components": list(deploy_config.keys())},
+    )
+    return result
 
 
 @router.post("/projects/{project_id}/deploy-stack")
-def deploy_stack(project_id: str, background_tasks: BackgroundTasks) -> dict:
+def deploy_stack(
+    project_id: str,
+    background_tasks: BackgroundTasks,
+    actor: CurrentUser = Depends(require_permission("deploys:write")),
+) -> dict:
     project = repo.get_project(project_id)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -271,13 +318,32 @@ def deploy_stack(project_id: str, background_tasks: BackgroundTasks) -> dict:
     if not deployments:
         raise HTTPException(status_code=400, detail="Enable frontend or backend in deploy settings")
 
+    audit.record(
+        actor=actor,
+        action="hosting.stack_deploy",
+        resource_type="project",
+        resource_id=project_id,
+        message=f"Запущен деплой проекта {project.get('name', project_id)}",
+        metadata={"deployments": deployments},
+    )
     return {"deployments": deployments, "status": "building"}
 
 
 @router.delete("/projects/{project_id}", status_code=204)
-def delete_project(project_id: str) -> None:
+def delete_project(
+    project_id: str,
+    actor: CurrentUser = Depends(require_permission("projects:write")),
+) -> None:
+    project = repo.get_project(project_id)
     if not repo.delete_project(project_id):
         raise HTTPException(status_code=404, detail="Project not found")
+    audit.record(
+        actor=actor,
+        action="hosting.project_delete",
+        resource_type="project",
+        resource_id=project_id,
+        message=f"Удалён проект {project.get('name', project_id) if project else project_id}",
+    )
 
 
 @router.get("/apps")
@@ -286,7 +352,11 @@ def list_apps(project_id: str | None = None) -> list[dict]:
 
 
 @router.post("/apps", status_code=201)
-def create_app(body: AppCreate, background_tasks: BackgroundTasks) -> dict:
+def create_app(
+    body: AppCreate,
+    background_tasks: BackgroundTasks,
+    actor: CurrentUser = Depends(require_permission("projects:write")),
+) -> dict:
     if not body.name.strip():
         raise HTTPException(status_code=400, detail="Name is required")
     if not repo.get_project(body.project_id):
@@ -304,8 +374,24 @@ def create_app(body: AppCreate, background_tasks: BackgroundTasks) -> dict:
 
     if body.git_url.strip():
         deployment_id = _schedule_deploy(app, body.git_url.strip(), background_tasks)
+        audit.record(
+            actor=actor,
+            action="hosting.app_create_deploy",
+            resource_type="application",
+            resource_id=app["id"],
+            message=f"Создано и отправлено в деплой приложение {app['name']}",
+            metadata={"runtime": body.runtime, "git_url": body.git_url},
+        )
         return _enrich_app({**app, "deployment_id": deployment_id})
 
+    audit.record(
+        actor=actor,
+        action="hosting.app_create",
+        resource_type="application",
+        resource_id=app["id"],
+        message=f"Создано приложение {app['name']}",
+        metadata={"runtime": body.runtime},
+    )
     return _enrich_app(app)
 
 
@@ -332,38 +418,80 @@ def get_app_logs(app_id: str) -> dict:
 
 
 @router.post("/apps/{app_id}/stop")
-def stop_app(app_id: str) -> dict:
+def stop_app(
+    app_id: str,
+    actor: CurrentUser = Depends(require_permission("deploys:write")),
+) -> dict:
     app = repo.get_app(app_id)
     if not app:
         raise HTTPException(status_code=404, detail="App not found")
     docker_service.stop_container(app.get("container_name", ""))
     repo.update_app(app_id, "stopped", app.get("container_id", ""), app.get("container_name", ""), app.get("url", ""))
+    audit.record(actor=actor, action="hosting.app_stop", resource_type="application", resource_id=app_id, message=f"Остановлено приложение {app.get('name', app_id)}")
     return {"status": "stopped"}
 
 
 @router.post("/apps/{app_id}/start")
-def start_app(app_id: str) -> dict:
+def start_app(
+    app_id: str,
+    actor: CurrentUser = Depends(require_permission("deploys:write")),
+) -> dict:
     app = repo.get_app(app_id)
     if not app:
         raise HTTPException(status_code=404, detail="App not found")
     docker_service.start_container(app.get("container_name", ""))
     repo.update_app(app_id, "running", app.get("container_id", ""), app.get("container_name", ""), app.get("url", ""))
+    audit.record(actor=actor, action="hosting.app_start", resource_type="application", resource_id=app_id, message=f"Запущено приложение {app.get('name', app_id)}")
     return {"status": "running"}
 
 
 @router.post("/apps/{app_id}/redeploy")
-def redeploy_app(app_id: str, background_tasks: BackgroundTasks) -> dict:
+def redeploy_app(
+    app_id: str,
+    background_tasks: BackgroundTasks,
+    actor: CurrentUser = Depends(require_permission("deploys:write")),
+) -> dict:
     app = repo.get_app(app_id)
     if not app:
         raise HTTPException(status_code=404, detail="App not found")
     if not app.get("git_url"):
         raise HTTPException(status_code=400, detail="No git URL to redeploy from")
     deployment_id = _schedule_deploy(app, app["git_url"], background_tasks)
+    audit.record(actor=actor, action="hosting.app_redeploy", resource_type="application", resource_id=app_id, message=f"Запущен redeploy {app.get('name', app_id)}", metadata={"deployment_id": deployment_id})
     return {"deployment_id": deployment_id, "status": "building"}
 
 
+@router.post("/apps/{app_id}/ssl")
+def issue_app_ssl(
+    app_id: str,
+    actor: CurrentUser = Depends(require_permission("domains:write")),
+) -> dict:
+    app = repo.get_app(app_id)
+    if not app:
+        raise HTTPException(status_code=404, detail="App not found")
+    if not app.get("container_name"):
+        raise HTTPException(status_code=400, detail="App container is not ready")
+
+    kwargs = _nginx_kwargs_for_app(app)
+    nginx_service.write_app_config(app["slug"], app["container_name"], 3000, with_ssl=False, **kwargs)
+    docker_service.reload_nginx()
+
+    if not nginx_service.setup_app_ssl(app["slug"], app["container_name"], 3000, **kwargs):
+        raise HTTPException(status_code=400, detail=f"SSL certificate was not issued for {nginx_service.app_hostname(app['slug'])}")
+
+    docker_service.reload_nginx()
+    url = nginx_service.app_url(app["slug"])
+    repo.update_app(app_id, app.get("status", "running"), app.get("container_id", ""), app["container_name"], url)
+    updated = repo.get_app(app_id) or app
+    audit.record(actor=actor, action="hosting.app_ssl", resource_type="application", resource_id=app_id, message=f"Выпущен SSL для {nginx_service.app_hostname(app['slug'])}", metadata={"url": url})
+    return _enrich_app(updated)
+
+
 @router.delete("/apps/{app_id}", status_code=204)
-def delete_app(app_id: str) -> None:
+def delete_app(
+    app_id: str,
+    actor: CurrentUser = Depends(require_permission("projects:write")),
+) -> None:
     app = repo.get_app(app_id)
     if not app:
         raise HTTPException(status_code=404, detail="App not found")
@@ -372,12 +500,17 @@ def delete_app(app_id: str) -> None:
         nginx_service.remove_app_config(app["slug"])
         docker_service.reload_nginx()
     repo.delete_app(app_id)
+    audit.record(actor=actor, action="hosting.app_delete", resource_type="application", resource_id=app_id, message=f"Удалено приложение {app.get('name', app_id)}")
 
 
 @router.delete("/nginx/{slug}", status_code=204)
-def remove_nginx_config(slug: str) -> None:
+def remove_nginx_config(
+    slug: str,
+    actor: CurrentUser = Depends(require_permission("domains:write")),
+) -> None:
     nginx_service.remove_app_config(slug)
     docker_service.reload_nginx()
+    audit.record(actor=actor, action="hosting.nginx_remove", resource_type="nginx", resource_id=slug, message=f"Удалён nginx-конфиг {slug}")
 
 
 @router.get("/nginx")

@@ -12,8 +12,9 @@ defineSlots<AppShellSlots>();
     <main class="flex flex-1 flex-col overflow-y-auto">
       <div class="flex flex-1 flex-col gap-6 px-6 py-6 lg:px-8">
         <AppHeader />
-        <div class="pb-6">
+        <div class="flex flex-1 flex-col gap-6 pb-6">
           <slot />
+          <LegalFooter />
         </div>
       </div>
     </main>

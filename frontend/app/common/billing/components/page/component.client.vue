@@ -5,9 +5,11 @@ import AppButton from '~/shared/app/components/ui/button/component.vue';
 import AppCard from '~/shared/app/components/ui/card/component.vue';
 import AppInput from '~/shared/app/components/ui/input/component.vue';
 import { usePlatformApi } from '~/shared/app/hooks/use-platform-api';
+import { usePermissions } from '~/shared/app/hooks/use-permissions';
 import type { InvoiceEntity } from '../../entities/invoice.entity';
 
 const { get, post } = usePlatformApi();
+const { can } = usePermissions();
 const { data: invoices, refresh } = useAsyncData<InvoiceEntity[]>('billing-invoices', () => get('/api/v1/billing/invoices'));
 const { data: onecStatus } = useAsyncData('billing-status', () => get('/api/v1/billing/status'));
 
@@ -47,7 +49,7 @@ async function exportFor1C() {
 }
 
 async function createInvoice() {
-  if (!form.company_name.trim() || !form.amount) return;
+  if (!form.company_name.trim() || !form.amount || !can('billing:write')) return;
   state.saving = true;
   state.error = '';
   try {
@@ -70,7 +72,7 @@ async function createInvoice() {
 const marking = ref<string | null>(null);
 
 async function markPaid(inv: InvoiceEntity) {
-  if (inv.status === 'paid') return;
+  if (inv.status === 'paid' || !can('billing:write')) return;
   marking.value = inv.id;
   state.error = '';
   try {
@@ -84,7 +86,7 @@ async function markPaid(inv: InvoiceEntity) {
 }
 
 async function cancel(inv: InvoiceEntity) {
-  if (inv.status === 'cancelled') return;
+  if (inv.status === 'cancelled' || !can('billing:write')) return;
   marking.value = inv.id;
   state.error = '';
   try {
@@ -110,7 +112,7 @@ async function cancel(inv: InvoiceEntity) {
         </p>
       </div>
       <div class="flex gap-2">
-        <AppButton label="Новый счёт" @click="showForm = !showForm" />
+        <AppButton v-if="can('billing:write')" label="Новый счёт" @click="showForm = !showForm" />
         <AppButton label="Выгрузить для 1С" tone="secondary" @click="exportFor1C" />
       </div>
     </div>
@@ -157,14 +159,14 @@ async function cancel(inv: InvoiceEntity) {
         </div>
         <div class="flex flex-wrap gap-2">
           <AppButton
-            v-if="inv.status !== 'paid' && inv.status !== 'cancelled'"
+            v-if="can('billing:write') && inv.status !== 'paid' && inv.status !== 'cancelled'"
             :disabled="marking === inv.id"
             :label="marking === inv.id ? '...' : 'Оплачен'"
             tone="secondary"
             @click="markPaid(inv)"
           />
           <AppButton
-            v-if="inv.status !== 'cancelled'"
+            v-if="can('billing:write') && inv.status !== 'cancelled'"
             :disabled="marking === inv.id"
             :label="marking === inv.id ? '...' : 'Отменить'"
             tone="secondary"

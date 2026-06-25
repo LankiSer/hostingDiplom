@@ -7,6 +7,7 @@ NGINX_CONF_DIR = os.getenv("NGINX_CONF_DIR", "/etc/nginx/platform.d")
 APP_DOMAIN = os.getenv("APP_DOMAIN", "apps.localhost")
 SSL_ENABLED = os.getenv("NGINX_SSL_ENABLED", "false").lower() in ("1", "true", "yes")
 SSL_AUTO_ISSUE = os.getenv("SSL_AUTO_ISSUE", "false").lower() in ("1", "true", "yes")
+HOST_NGINX_MODE = os.getenv("HOST_NGINX_MODE", "false").lower() in ("1", "true", "yes")
 LETSENCRYPT_LIVE = os.getenv("LETSENCRYPT_LIVE_DIR", "/etc/letsencrypt/live")
 PLATFORM_API_UPSTREAM = os.getenv("PLATFORM_API_UPSTREAM", "gateway-service:8000")
 
@@ -130,6 +131,7 @@ def _http_server(
     proxy_api: bool,
     api_container: str | None,
     api_port: int,
+    forwarded_proto: str = "http",
 ) -> str:
     body = _acme_block()
     if redirect_https:
@@ -142,7 +144,7 @@ def _http_server(
         body += _locations(
             container_name,
             port,
-            "http",
+            forwarded_proto,
             proxy_api=proxy_api,
             api_container=api_container,
             api_port=api_port,
@@ -169,9 +171,23 @@ def write_app_config(
     hostname = app_hostname(slug)
     if with_ssl is None:
         with_ssl = SSL_ENABLED and cert_exists(hostname)
+    host_terminates_ssl = HOST_NGINX_MODE and with_ssl
 
     parts: list[str] = []
-    if with_ssl:
+    if host_terminates_ssl:
+        parts.append(
+            _http_server(
+                hostname,
+                container_name,
+                port,
+                redirect_https=False,
+                proxy_api=proxy_api,
+                api_container=api_container,
+                api_port=api_port,
+                forwarded_proto="$http_x_forwarded_proto",
+            )
+        )
+    elif with_ssl:
         parts.append(
             _https_server(
                 hostname,
@@ -211,7 +227,12 @@ def write_app_config(
         os.makedirs(NGINX_CONF_DIR, exist_ok=True)
         with open(os.path.join(NGINX_CONF_DIR, f"{slug}.conf"), "w") as fh:
             fh.write(conf)
-        logger.info("Nginx config written for %s (%s)", slug, _scheme(with_ssl))
+        logger.info(
+            "Nginx config written for %s (%s%s)",
+            slug,
+            _scheme(with_ssl),
+            ", host-terminated" if host_terminates_ssl else "",
+        )
         return True
     except Exception as exc:
         logger.error("Failed to write nginx config for %s: %s", slug, exc)

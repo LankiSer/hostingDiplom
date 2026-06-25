@@ -74,18 +74,22 @@ chmod +x *.sh
 
 Делает certbot для `app` + `api`, включает `nginx.https.conf`, `SSL_AUTO_ISSUE=true`.
 
-## 5. SSL для каждого приложения (автоматически)
+## 5. SSL для каждого приложения
 
-При деплое из кабинета gateway:
+Для приложений нужен DNS:
 
-1. Пишет HTTP-конфиг для `slug.apps.kostricyn.ru` (прокси + ACME)
-2. `nginx -s reload`
-3. Запускает certbot для **этого** hostname
-4. Пишет HTTPS-конфиг с путями  
-   `/etc/letsencrypt/live/slug.apps.kostricyn.ru/`
-5. Снова `nginx -s reload`
+```dns
+*.apps.kostricyn.ru  A  <IP сервера>
+```
 
-**Перед деплоем** добавьте A-запись DNS на `slug.apps.kostricyn.ru`.
+В режиме внешнего nginx (`HOST_NGINX_MODE=true`) TLS для приложений завершается на host nginx:
+
+1. Gateway пишет HTTP-конфиг приложения в `platform.d`.
+2. Certbot выпускает сертификат для конкретного `slug.apps.kostricyn.ru`.
+3. Host nginx берёт сертификат по SNI из `/etc/letsencrypt/live/$ssl_server_name/`.
+4. HTTPS-запрос проксируется внутрь на platform nginx `127.0.0.1:8080`.
+
+Для уже созданного приложения можно открыть карточку приложения и нажать **«Выпустить SSL»**.
 
 ### Вручную, если авто не сработало
 

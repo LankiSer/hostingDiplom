@@ -42,7 +42,7 @@ async function handleSubmit() {
 
     <AppCheckbox v-model="acceptTerms">
       Я принимаю
-      <NuxtLink class="text-sky-600 hover:underline" to="/legal/privacy">пользовательское соглашение</NuxtLink>
+      <NuxtLink class="text-sky-600 hover:underline" to="/legal/terms">пользовательское соглашение</NuxtLink>
       и
       <NuxtLink class="text-sky-600 hover:underline" to="/legal/personal-data">политику обработки данных</NuxtLink>
     </AppCheckbox>

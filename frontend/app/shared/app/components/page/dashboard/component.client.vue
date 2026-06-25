@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useRouter } from '#imports';
+import FeatureNotice from '~/shared/app/components/ui/feature-notice/component.vue';
 import { usePlatformApi } from '~/shared/app/hooks/use-platform-api';
 
 interface Project { id: string; name: string; app_count: number }
@@ -10,22 +11,18 @@ interface Deployment { id: string; status: string; git_url: string; created_at: 
 const { get } = usePlatformApi();
 const router = useRouter();
 
-interface Invoice { id: string; status: string }
-
 const { data: projects } = useAsyncData<Project[]>('dash-projects', () => get('/api/v1/hosting/projects'));
 const { data: apps } = useAsyncData<App[]>('dash-apps', () => get('/api/v1/hosting/apps'));
 const { data: deployments } = useAsyncData<Deployment[]>('dash-deploys', () => get('/api/v1/hosting/deployments'));
-const { data: invoices } = useAsyncData<Invoice[]>('dash-invoices', () => get('/api/v1/billing/invoices'));
 
 const stats = computed(() => [
   { label: 'Проектов', value: projects.value?.length ?? 0, to: '/projects' },
   { label: 'Приложений', value: apps.value?.length ?? 0, to: '/applications' },
-  { label: 'Запущено', value: apps.value?.filter(a => a.status === 'running').length ?? 0, to: '/applications' },
-  { label: 'Счётов', value: invoices.value?.length ?? 0, to: '/billing' },
+  { label: 'Запущено', value: apps.value?.filter((a) => a.status === 'running').length ?? 0, to: '/applications' },
   { label: 'Деплоев', value: deployments.value?.length ?? 0, to: '/deployments' },
 ]);
 
-const runningApps = computed(() => apps.value?.filter(a => a.status === 'running').slice(0, 5) ?? []);
+const runningApps = computed(() => apps.value?.filter((a) => a.status === 'running').slice(0, 5) ?? []);
 const recentDeploys = computed(() => deployments.value?.slice(0, 5) ?? []);
 
 function deployStatus(s: string) {
@@ -39,11 +36,17 @@ function formatDate(iso: string) {
 
 <template>
   <div class="grid gap-6">
-    <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+    <FeatureNotice
+      tone="info"
+      message="Создайте проект → укажите Git URL → задеплойте frontend и backend. Адрес приложения появится в карточке после успешной сборки."
+    />
+
+    <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
       <button
         v-for="stat in stats"
         :key="stat.label"
         class="rounded-xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:border-sky-200 hover:shadow"
+        type="button"
         @click="router.push(stat.to)"
       >
         <p class="text-2xl font-bold text-slate-900">{{ stat.value }}</p>
@@ -52,39 +55,23 @@ function formatDate(iso: string) {
     </div>
 
     <div>
-      <p class="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Быстрые действия</p>
-      <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <p class="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">С чего начать</p>
+      <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <button
-          class="flex flex-col gap-2 rounded-xl border border-sky-200 bg-sky-50 p-4 text-left transition hover:bg-sky-100"
+          class="rounded-xl border border-sky-200 bg-sky-50 p-4 text-left transition hover:bg-sky-100"
+          type="button"
           @click="router.push('/projects')"
         >
-          <span class="text-lg">🚀</span>
-          <span class="text-sm font-medium text-sky-700">Задеплоить</span>
-          <span class="text-xs text-slate-500">Frontend + backend из Git</span>
+          <span class="text-sm font-medium text-sky-800">Новый проект и деплой</span>
+          <span class="mt-1 block text-xs text-slate-500">Git-репозиторий, Dockerfile, публикация на поддомен</span>
         </button>
         <button
-          class="flex flex-col gap-2 rounded-xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:border-sky-200"
-          @click="router.push('/projects')"
+          class="rounded-xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:border-sky-200"
+          type="button"
+          @click="router.push('/domains')"
         >
-          <span class="text-lg">📁</span>
-          <span class="text-sm font-medium text-slate-800">Проект</span>
-          <span class="text-xs text-slate-500">Создать проект</span>
-        </button>
-        <button
-          class="flex flex-col gap-2 rounded-xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:border-sky-200"
-          @click="router.push('/billing')"
-        >
-          <span class="text-lg">💳</span>
-          <span class="text-sm font-medium text-slate-800">Биллинг</span>
-          <span class="text-xs text-slate-500">Счета и оплата</span>
-        </button>
-        <button
-          class="flex flex-col gap-2 rounded-xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:border-sky-200"
-          @click="router.push('/logs')"
-        >
-          <span class="text-lg">📋</span>
-          <span class="text-sm font-medium text-slate-800">Логи</span>
-          <span class="text-xs text-slate-500">Активность</span>
+          <span class="text-sm font-medium text-slate-800">Домены платформы</span>
+          <span class="mt-1 block text-xs text-slate-500">Кабинет, API и шаблон для приложений</span>
         </button>
       </div>
     </div>
@@ -93,7 +80,7 @@ function formatDate(iso: string) {
       <div>
         <div class="mb-3 flex items-center justify-between">
           <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Запущенные приложения</p>
-          <button class="text-xs text-sky-600 hover:underline" @click="router.push('/applications')">Все →</button>
+          <button class="text-xs text-sky-600 hover:underline" type="button" @click="router.push('/applications')">Все →</button>
         </div>
         <div v-if="!runningApps.length" class="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">
           Нет запущенных приложений
@@ -120,10 +107,11 @@ function formatDate(iso: string) {
       <div>
         <div class="mb-3 flex items-center justify-between">
           <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Последние деплои</p>
-          <button class="text-xs text-sky-600 hover:underline" @click="router.push('/deployments')">Все →</button>
+          <button class="text-xs text-sky-600 hover:underline" type="button" @click="router.push('/deployments')">Все →</button>
         </div>
         <div v-if="!recentDeploys.length" class="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">
-          Нет деплоев. <button class="text-sky-600 hover:underline" @click="router.push('/projects')">Задеплоить первое →</button>
+          Нет деплоев.
+          <button class="text-sky-600 hover:underline" type="button" @click="router.push('/projects')">Задеплоить первое →</button>
         </div>
         <div v-else class="overflow-hidden rounded-xl border border-slate-200 bg-white">
           <div

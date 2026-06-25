@@ -1,14 +1,17 @@
 import logging
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
+from src.core.rbac import CurrentUser, require_permission
+from src.repositories.audit_repository import AuditRepository
 from src.repositories.billing_repository import BillingRepository
 from src.services import onec_client
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/billing")
 repo = BillingRepository()
+audit = AuditRepository()
 
 
 class InvoiceCreate(BaseModel):
@@ -24,7 +27,10 @@ def list_invoices() -> list[dict]:
 
 
 @router.post("/invoices", status_code=201)
-def create_invoice(body: InvoiceCreate) -> dict:
+def create_invoice(
+    body: InvoiceCreate,
+    actor: CurrentUser = Depends(require_permission("billing:write")),
+) -> dict:
     if not body.company_name.strip():
         raise HTTPException(status_code=400, detail="company_name is required")
     if body.amount <= 0:
@@ -55,6 +61,14 @@ def create_invoice(body: InvoiceCreate) -> dict:
     else:
         logger.info("Invoice %s stored locally (1C not available)", invoice["id"])
 
+    audit.record(
+        actor=actor,
+        action="billing.invoice_create",
+        resource_type="invoice",
+        resource_id=invoice["id"],
+        message=f"Создан счёт для {invoice['company_name']}",
+        metadata={"amount": float(invoice["amount"]), "status": invoice["status"]},
+    )
     return invoice
 
 
@@ -89,18 +103,40 @@ def get_invoice(invoice_id: str) -> dict:
 
 
 @router.post("/invoices/{invoice_id}/mark-paid")
-def mark_paid(invoice_id: str) -> dict:
+def mark_paid(
+    invoice_id: str,
+    actor: CurrentUser = Depends(require_permission("billing:write")),
+) -> dict:
     updated = repo.update_status(invoice_id, "paid")
     if not updated:
         raise HTTPException(status_code=404, detail="Invoice not found")
+    audit.record(
+        actor=actor,
+        action="billing.invoice_paid",
+        resource_type="invoice",
+        resource_id=invoice_id,
+        message=f"Счёт {invoice_id} отмечен оплаченным",
+        metadata={"status": "paid"},
+    )
     return updated
 
 
 @router.post("/invoices/{invoice_id}/cancel")
-def cancel_invoice(invoice_id: str) -> dict:
+def cancel_invoice(
+    invoice_id: str,
+    actor: CurrentUser = Depends(require_permission("billing:write")),
+) -> dict:
     updated = repo.update_status(invoice_id, "cancelled")
     if not updated:
         raise HTTPException(status_code=404, detail="Invoice not found")
+    audit.record(
+        actor=actor,
+        action="billing.invoice_cancel",
+        resource_type="invoice",
+        resource_id=invoice_id,
+        message=f"Счёт {invoice_id} отменён",
+        metadata={"status": "cancelled"},
+    )
     return updated
 
 

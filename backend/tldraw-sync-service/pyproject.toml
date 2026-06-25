@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "tldraw-sync-service"
+version = "0.1.0"
+description = "Self-hosted tldraw sync backend for real-time whiteboard collaboration"
+authors = ["GCloude <team@gcloude.local>"]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+fastapi = "^0.115"
+uvicorn = {extras = ["standard"], version = "^0.34"}
+websockets = "^14"
+aiofiles = "^24"
+sqlalchemy = "^2.0"
+psycopg2-binary = "^2.9"
+pydantic-settings = "^2.6"
+
+[tool.poetry.group.dev.dependencies]
+black = "^24.0"
+flake8 = "^7.0"
+pytest = "^8.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = ["poetry.core.masonry.api"]

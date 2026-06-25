@@ -23,7 +23,10 @@ function formatDate(iso: string) {
   <div class="grid gap-4">
     <div>
       <h2 class="text-xl font-semibold text-slate-900">История деплоев</h2>
-      <p class="text-sm text-slate-500">Все сборки и публикации приложений</p>
+      <p class="text-sm text-slate-500">
+        Все сборки и публикации приложений.
+        <NuxtLink to="/logs" class="text-sky-600 hover:underline">Журнал с логами →</NuxtLink>
+      </p>
     </div>
 
     <div v-if="!deployments?.length" class="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-5 py-8 text-center text-sm text-slate-500">

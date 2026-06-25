@@ -18,6 +18,16 @@ def info() -> dict[str, list[str] | str]:
     return {"name": settings.service_name, "capabilities": settings.capabilities}
 
 
+@router.get("/api/v1/platform/ws/status")
+def websocket_status() -> dict[str, object]:
+    return {
+        "call_signaling": "/api/v1/platform/ws/calls/{session_id}",
+        "tldraw_sync": "/api/v1/platform/ws/tldraw/{room_id}",
+        "livekit_proxy": "/livekit/",
+        "status": "ok",
+    }
+
+
 @router.get("/api/v1/routes")
 def routes() -> dict[str, list[dict[str, str]]]:
     return {"items": service.list_routes()}

@@ -2,6 +2,7 @@ export interface SessionEntity {
   companyName: string;
   displayName: string;
   email: string;
-  role: 'owner' | 'manager';
+  permissions?: string[];
+  role: 'owner' | 'ops' | 'finance' | 'viewer';
   token: string;
 }

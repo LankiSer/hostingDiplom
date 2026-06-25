@@ -5,17 +5,20 @@ import AppBadge from '~/shared/app/components/ui/badge/component.vue';
 import AppButton from '~/shared/app/components/ui/button/component.vue';
 import AppCard from '~/shared/app/components/ui/card/component.vue';
 import { usePlatformApi } from '~/shared/app/hooks/use-platform-api';
+import { usePermissions } from '~/shared/app/hooks/use-permissions';
 
 interface AppDetail { id: string; name: string; project_name: string; project_id: string; runtime: string; status: string; url: string; hostname?: string; git_url: string; slug: string; container_name: string }
 
 const props = defineProps<{ appId: string }>();
 const { get, post, del } = usePlatformApi();
+const { can } = usePermissions();
 const router = useRouter();
 
 const { data: app, refresh: refreshApp } = useAsyncData<AppDetail>(`app-${props.appId}`, () => get(`/api/v1/hosting/apps/${props.appId}`));
 const logs = ref('');
 const loadingLogs = ref(false);
 const actionState = ref('');
+const actionError = ref('');
 
 let pollTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -35,16 +38,20 @@ async function loadLogs() {
 
 async function doAction(action: string) {
   actionState.value = action;
+  actionError.value = '';
   try {
     await post(`/api/v1/hosting/apps/${props.appId}/${action}`, {});
     await refreshApp();
     if (action === 'start' || action === 'stop') await loadLogs();
+  } catch (error: any) {
+    actionError.value = error?.data?.detail ?? 'Действие не выполнено.';
   } finally {
     actionState.value = '';
   }
 }
 
 async function deleteApp() {
+  if (!can('projects:write')) return;
   if (!confirm(`Удалить приложение ${app.value?.name}? Контейнер и nginx-конфиг будут удалены.`)) return;
   await del(`/api/v1/hosting/apps/${props.appId}`);
   router.push(`/projects/${app.value?.project_id}`);
@@ -57,6 +64,10 @@ async function redeploy() {
     await refreshApp();
     if (app.value?.status !== 'building') { clearInterval(pollTimer!); pollTimer = null; await loadLogs(); }
   }, 3000);
+}
+
+async function issueSsl() {
+  await doAction('ssl');
 }
 
 onMounted(() => {
@@ -87,12 +98,14 @@ onUnmounted(() => { if (pollTimer) clearInterval(pollTimer); });
 
     <AppCard>
       <div class="flex flex-wrap gap-2">
-        <AppButton v-if="app?.status === 'running'" :disabled="!!actionState" label="Остановить" tone="secondary" @click="doAction('stop')" />
-        <AppButton v-if="app?.status === 'stopped' || app?.status === 'error'" :disabled="!!actionState" label="Запустить" @click="doAction('start')" />
-        <AppButton v-if="app?.git_url" :disabled="!!actionState || app?.status === 'building'" :label="app?.status === 'building' ? 'Деплоится...' : 'Передеплоить'" @click="redeploy" />
+        <AppButton v-if="can('deploys:write') && app?.status === 'running'" :disabled="!!actionState" label="Остановить" tone="secondary" @click="doAction('stop')" />
+        <AppButton v-if="can('deploys:write') && (app?.status === 'stopped' || app?.status === 'error')" :disabled="!!actionState" label="Запустить" @click="doAction('start')" />
+        <AppButton v-if="can('deploys:write') && app?.git_url" :disabled="!!actionState || app?.status === 'building'" :label="app?.status === 'building' ? 'Деплоится...' : 'Передеплоить'" @click="redeploy" />
+        <AppButton v-if="can('domains:write') && app?.status === 'running'" :disabled="!!actionState" :label="actionState === 'ssl' ? 'Выпускаем SSL...' : 'Выпустить SSL'" tone="secondary" @click="issueSsl" />
         <AppButton :disabled="!!actionState" label="Обновить логи" tone="secondary" @click="loadLogs" />
-        <AppButton :disabled="!!actionState" label="Удалить" tone="secondary" @click="deleteApp" />
+        <AppButton v-if="can('projects:write')" :disabled="!!actionState" label="Удалить" tone="secondary" @click="deleteApp" />
       </div>
+      <p v-if="actionError" class="mt-3 text-sm text-rose-600">{{ actionError }}</p>
     </AppCard>
 
     <AppCard>

@@ -6,10 +6,12 @@ import AppButton from '~/shared/app/components/ui/button/component.vue';
 import AppCard from '~/shared/app/components/ui/card/component.vue';
 import AppInput from '~/shared/app/components/ui/input/component.vue';
 import { usePlatformApi } from '~/shared/app/hooks/use-platform-api';
+import { usePermissions } from '~/shared/app/hooks/use-permissions';
 
 interface Project { id: string; name: string; slug: string; description: string; app_count: number; created_at: string }
 
 const { get, post, del } = usePlatformApi();
+const { can } = usePermissions();
 const router = useRouter();
 const { data: projects, refresh } = useAsyncData<Project[]>('hosting-projects', () => get('/api/v1/hosting/projects'));
 const showForm = ref(false);
@@ -17,7 +19,7 @@ const form = reactive({ name: '', description: '' });
 const state = reactive({ saving: false, error: '' });
 
 async function createProject() {
-  if (!form.name.trim()) return;
+  if (!form.name.trim() || !can('projects:write')) return;
   state.saving = true;
   state.error = '';
   try {
@@ -34,6 +36,7 @@ async function createProject() {
 }
 
 async function removeProject(id: string) {
+  if (!can('projects:write')) return;
   if (!confirm('Удалить проект и все его приложения?')) return;
   await del(`/api/v1/hosting/projects/${id}`);
   await refresh();
@@ -47,7 +50,7 @@ async function removeProject(id: string) {
         <h2 class="text-xl font-semibold text-slate-900">Проекты</h2>
         <p class="text-sm text-slate-500">Создайте проект и настройте деплой frontend/backend из Git</p>
       </div>
-      <AppButton label="Новый проект" @click="showForm = !showForm" />
+      <AppButton v-if="can('projects:write')" label="Новый проект" @click="showForm = !showForm" />
     </div>
 
     <AppCard v-if="showForm">
@@ -75,7 +78,7 @@ async function removeProject(id: string) {
         </div>
         <div class="flex shrink-0 items-center gap-2">
           <AppBadge :label="`${p.app_count ?? 0} приложений`" tone="muted" />
-          <button class="p-1 text-xs text-slate-400 hover:text-rose-500" @click.stop="removeProject(p.id)">✕</button>
+          <button v-if="can('projects:write')" class="p-1 text-xs text-slate-400 hover:text-rose-500" @click.stop="removeProject(p.id)">✕</button>
         </div>
       </div>
     </AppCard>

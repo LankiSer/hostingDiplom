@@ -42,6 +42,10 @@ chmod +x setup.sh && ./setup.sh
 
 See `docs/deploy-kostricyn.ru.md` for DNS, SSL, and Git deploy details.
 
+**Подготовка к защите диплома:** см. [`docs/diploma-defense.md`](docs/diploma-defense.md) — полная шпаргалка.
+
+**Текст для напарника (только фронт):** [`docs/diploma-defense-part1-frontend.md`](docs/diploma-defense-part1-frontend.md)
+
 ## Local Demo
 
 Use `nginx` as the single local entry point and map `dashboard.gcloude.local`,
